@@ -109,7 +109,7 @@ x64
   #powershell -c echo "1`n`D:\Github\S-inject\Test Files\TestDll_x64.dll`n`20176" | D:\Github\S-inject\x64\Release\S-inject.exe
   ```
 
-  ![image-20240205131316348](./README.assets/\image-20240205131316348.png)
+  ![image-20240205131316348](./README.assets/image-20240205131316348.png)
 
   cmd.exe
 
