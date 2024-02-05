@@ -1,10 +1,10 @@
-![](https://img.shields.io/badge/joe1sn-S_inject-green)  ![](https://img.shields.io/badge/windows-C-yellow)
+![](https://img.shields.io/badge/joe1sn-S_inject-green)  ![](https://img.shields.io/badge/windows-C++-yellow)
 
 # S-inject
 
 DLL+Shellcode的Windows注入工具
 
-![image-20240205141410967](D:\Github\S-inject\README.assets\image-20240205141410967.png)
+![image-20240205141410967](./README.assets/image-20240205141410967.png)
 
 只是罗列各种方法，免杀搭配其他技巧中要具体灵活使用
 
@@ -17,7 +17,7 @@ DLL+Shellcode的Windows注入工具
 
 # 支持功能
 
-![image-20240205124826998](D:\Github\S-inject\README.assets\image-20240205124826998.png)
+![image-20240205124826998](./README.assets/image-20240205124826998.png)
 
 **DLL注入**
 
@@ -50,11 +50,11 @@ base64编码后shellcode
 SDH/SPfnZUiLWGBIi1sYSItbIEiLG0iLG0iLWyBJidiLWzxMAcNIMclmgcH/iEjB6QiLFAtMAcJNMdJEi1IcTQHCTTHbRItaIE0Bw00x5ESLYiRNAcTrMltZSDHASIniUUiLDCRIMf9BizyDTAHHSInW86Z0BUj/wOvmWWZBiwREQYsEgkwBwFPDSDHJgMEHSLgPqJaRuoeanEj30EjB6AhQUeiw////SYnGSDHJSPfhUEi4nJ6TnNGah5pI99BQSInhSP/CSIPsIEH/1g==
 ```
 
-![image-20240205135709302](D:\Github\S-inject\README.assets\image-20240205135709302.png)
+![image-20240205135709302](./README.assets/image-20240205135709302.png)
 
 以CobaltStrike Shellcode为例子
 
-![image-20240205140305351](D:\Github\S-inject\README.assets\image-20240205140305351.png)
+![image-20240205140305351](./README.assets/image-20240205140305351.png)
 
 ### 关于使用不可交互终端
 
@@ -70,7 +70,7 @@ echo "<option index>`n`<pid>`n`<base64 Shellcode>" | <S-inject Path>
 #(echo 4`n`16900`n`SDH/SPfnZUiLWGBIi1sYSItbIEiLG0iLG0iLWyBJidiLWzxMAcNIMclmgcH/iEjB6QiLFAtMAcJNMdJEi1IcTQHCTTHbRItaIE0Bw00x5ESLYiRNAcTrMltZSDHASIniUUiLDCRIMf9BizyDTAHHSInW86Z0BUj/wOvmWWZBiwREQYsEgkwBwFPDSDHJgMEHSLgPqJaRuoeanEj30EjB6AhQUeiw////SYnGSDHJSPfhUEi4nJ6TnNGah5pI99BQSInhSP/CSIPsIEH/1g==) |  D:\Github\S-inject\x64\Release\S-inject.exe
 ```
 
-![image-20240205140815069](.\README.assets\image-20240205140815069.png)
+![image-20240205140815069](./README.assets/image-20240205140815069.png)
 
 ## DLL注入
 
@@ -78,7 +78,7 @@ echo "<option index>`n`<pid>`n`<base64 Shellcode>" | <S-inject Path>
 
 直接在终端中启动，根据菜单选择功能即可，如枚举可注入进程
 
-![image-20240205125036362](.\README.assets\image-20240205125036362.png)
+![image-20240205125036362](./README.assets/image-20240205125036362.png)
 
 ### B, 不可交互终端
 
@@ -97,7 +97,7 @@ x64
   #echo "1`n`D:\Github\S-inject\Test Files\TestDll_x64.dll`n`20176" | D:\Github\S-inject\x64\Release\S-inject.exe
   ```
 
-  ![image-20240205131438254](.\README.assets\image-20240205131438254.png)
+  ![image-20240205131438254](./README.assets/image-20240205131438254.png)
 
 - cmd
 
@@ -109,7 +109,7 @@ x64
   #powershell -c echo "1`n`D:\Github\S-inject\Test Files\TestDll_x64.dll`n`20176" | D:\Github\S-inject\x64\Release\S-inject.exe
   ```
 
-  ![image-20240205131316348](.\README.assets\image-20240205131316348.png)
+  ![image-20240205131316348](./README.assets/\image-20240205131316348.png)
 
   cmd.exe
 
@@ -119,7 +119,7 @@ x64
   #(echo 1 D:\Github\S-inject\Test Files\TestDll_x64.dll &echo 22268) | D:\Github\S-inject\x64\Release\S-inject.exe
   ```
 
-  ![image-20240205135210534](.\README.assets\image-20240205135210534.png)
+  ![image-20240205135210534](./README.assets/image-20240205135210534.png)
 
 
 
