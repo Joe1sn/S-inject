@@ -19,13 +19,13 @@ DLL+Shellcode的Windows注入免杀工具
 
 远程shellcode注入等功能可免杀火绒，VNC无感，可注册表添加开机自启动
 
-![image-20240216112653373](D:\Github\S-inject\README.assets\image-20240216112653373.png)
+![image-20240216112653373](./README.assets/image-20240216112653373.png)
 
-![image-20240216113029381](D:\Github\S-inject\README.assets\image-20240216113029381.png)
+![image-20240216113029381](./README.assets/image-20240216113029381.png)
 
-![image-20240216113432922](D:\Github\S-inject\README.assets\image-20240216113432922.png)
+![image-20240216113432922](./README.assets/image-20240216113432922.png)
 
-![image-20240216113917066](D:\Github\S-inject\README.assets\image-20240216113917066.png)
+![image-20240216113917066](./README.assets/image-20240216113917066.png)
 
 # 支持功能
 
