@@ -2,7 +2,7 @@
 
 # S-inject
 
-DLL+Shellcode的Windows注入工具
+DLL+Shellcode的Windows注入免杀工具
 
 ![image-20240205141410967](./README.assets/image-20240205141410967.png)
 
@@ -14,6 +14,18 @@ DLL+Shellcode的Windows注入工具
    该项目为反射式注入支持的DLL
 2. Shellcode使用base64编码后的shellcode
 3. 相关测试的DLL文件在`Test Files`文件夹中
+
+# 免杀效果
+
+远程shellcode注入等功能可免杀火绒，VNC无感，可注册表添加开机自启动
+
+![image-20240216112653373](D:\Github\S-inject\README.assets\image-20240216112653373.png)
+
+![image-20240216113029381](D:\Github\S-inject\README.assets\image-20240216113029381.png)
+
+![image-20240216113432922](D:\Github\S-inject\README.assets\image-20240216113432922.png)
+
+![image-20240216113917066](D:\Github\S-inject\README.assets\image-20240216113917066.png)
 
 # 支持功能
 
