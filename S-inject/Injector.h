@@ -10,6 +10,9 @@ using std::string;
 #define DEREF_16( name )*(WORD *)(name)
 #define DEREF_8( name )*(BYTE *)(name)
 
+#define STATUS_SUCCESS 0x00000000L
+
+
 class Injector
 {
 private:

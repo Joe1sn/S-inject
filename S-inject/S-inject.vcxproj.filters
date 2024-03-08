@@ -24,6 +24,9 @@
     <ClCompile Include="Helper.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="S-Wisper.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Injector.h">
@@ -32,5 +35,29 @@
     <ClInclude Include="Helper.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="S-Wisper.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="resource1.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="S-inject.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="ICON.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="S-Wisper-asm.x64.asm">
+      <Filter>源文件</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

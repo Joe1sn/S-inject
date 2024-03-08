@@ -20,7 +20,14 @@ void banner() {
 
 void menu() {
     set_color(FOREGROUND_RED, FOREGROUND_INTENSITY);
+#ifdef _WIN64
+    cout << "-----------------------------Let SysWisper...    \n";
+#else
+#ifdef _WIN32
+
+#endif // _WIN32
     cout << "-----------------------------------------------\n";
+#endif // _WIN64
     cout << "[1] Remote Thread Injection\n";
     cout << "[2] Reflect DLL Injection\n";
     cout << "[3] APC Dispatch Injection\n";
