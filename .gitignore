@@ -1,2 +1,5 @@
 .vs
-# .gitignore
+.gitignore
+**/Debug
+*.pdb
+*.idb

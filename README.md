@@ -1,12 +1,12 @@
 ![](https://img.shields.io/badge/joe1sn-S_inject-green)  ![](https://img.shields.io/badge/windows-C++-yellow)
 
-# S-inject
+<center><h1>S-inject</h1></center>
 
-DLL+Shellcode的Windows注入免杀工具
+<center>DLL+Shellcode的Windows注入免杀工具</center>
 
-![image-20240205141410967](./README.assets/image-20240205141410967.png)
+<center><img src="./README.assets/image-20240205141410967.png"></center>
 
-只是罗列各种方法，免杀搭配其他技巧中要具体灵活使用
+只是罗列各种方法，免杀推荐搭配其他技巧，要具体灵活使用
 
 **须知：**
 
