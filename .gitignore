@@ -1,5 +1,7 @@
 .vs
 .gitignore
 **/Debug
+**/Release
+**/x64
 *.pdb
 *.idb

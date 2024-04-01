@@ -1,10 +1,10 @@
 ![](https://img.shields.io/badge/joe1sn-S_inject-green)  ![](https://img.shields.io/badge/windows-C++-yellow)
 
-<center><h1>S-inject</h1></center>
+<p align="center" style="color:green;font-size:40px"><b>S-inject</b></p>
 
-<center>DLL+Shellcode的Windows注入免杀工具</center>
+<p align="center">DLL+Shellcode的Windows注入免杀工具</p>
 
-<center><img src="./README.assets/image-20240205141410967.png"></center>
+<p align="center"><img src="./README.assets/image-20240205141410967.png"></p>
 
 只是罗列各种方法，免杀推荐搭配其他技巧，要具体灵活使用
 
@@ -20,6 +20,7 @@
 # Update
 
 - **[2024-3-8]** 更新64位`CreateRemoteThread`为直接系统调用，方法采用`SysWisper3`项目
+- **[2024-4-1]** 更新DLL的暴力注入，详细见readme->使用->DLL自动注入/暴力注入
 
 # 免杀效果
 
@@ -48,15 +49,39 @@
 - 远程线程注入
 - APC调度注入
 - Context上下文注入
-- **可注入进程枚举**
+
+**可注入进程遍历**
 
 # 使用
 
 非交互式终端使用管道传参
 
 - 注意cmd和powershell的区别
-
 - 注意cmd字符串超过80个会自动换行，推荐搭配powershell
+
+## 一般步骤
+
+1. 运行程序
+2. 输入7，遍历出能被注入的进程的pid
+3. 选择你的注入方式
+
+## DLL自动注入/遍历注入
+
+- 自动注入
+
+  DLL注入的功能中输入让`pid=0`，如果遇到一个能够被注入的进程那么就会注入，成功注入可能性低
+
+  ![image-20240401105145205](./README.assets/image-20240401105145205.png)
+
+- 暴力注入- **可能对系统造成损害**
+
+  `S-inject.exe <任意值>`，确保启动参数`argc`等于2
+
+  DLL注入的功能中输入让`pid=0`
+
+  程序遍历所有可被注入程序，对每一个能被注入的进程进行DLL注入
+
+  ![image-20240401105329537](./README.assets/image-20240401105329537.png)
 
 ## Shellcode注入
 

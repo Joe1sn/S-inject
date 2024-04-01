@@ -8,7 +8,9 @@ using namespace std;
 
 Injector::Injector(string dll_path) {
     this->DllPath = dll_path;
+    this->callback_ = nullptr;
     this->exist = this->bFileExists(this->DllPath);
+    this->brutalmod = FALSE;
     if (!exist) {
 
 #ifdef _DEBUG
@@ -21,12 +23,14 @@ Injector::Injector(string dll_path) {
 Injector::Injector() {
     this->DllPath = "";
     this->exist = FALSE;
+    this->brutalmod = FALSE;
+    this->callback_ = nullptr;
 }
 
 
 Injector::~Injector() {}
 
-void Injector::setter(string dll_path) {
+void Injector::DllPathsetter(string dll_path) {
     this->DllPath = dll_path;
     this->exist = this->bFileExists(this->DllPath);
     if (!exist) {
@@ -35,6 +39,14 @@ void Injector::setter(string dll_path) {
 #endif // _DEBUG
         return;
     }
+}
+
+void Injector::CallBackSetter(CallbackFunction InjecMethod) {
+    this->callback_ = InjecMethod;
+}
+
+void Injector::BrutalSetter(bool crazy) {
+    this->brutalmod = crazy;
 }
 
 DWORD Injector::GetPidName(char name[]) {
@@ -84,9 +96,11 @@ DWORD Injector::GetPidName(char name[]) {
 /*                  Remote Thread Injection                  */
 void Injector::RemoteThreadInject(DWORD pid) {
     bool bRet;
-    if (pid == 0)
+    if (!this->exist) {
+        cerr << "[!] Invalid PID\t";
         return;
-    if (!this->exist)
+    }
+    if (pid == 0)
         return;
     if (!this->bInjectable(pid))
         return;
@@ -480,6 +494,25 @@ void Injector::Injectable() {
                         set_color(FOREGROUND_RED | FOREGROUND_GREEN, FOREGROUND_INTENSITY);
                         cout << "[^] X64 Injectable\t";
                         set_normal();
+                        // x64 回调注入
+                        if (this->callback_ != NULL) {
+
+                            cout << "Process ID: " << processEntry.th32ProcessID << "\t";
+                            wcout << "Process Name: " << processEntry.szExeFile << "\n";
+                            try
+                            {
+                                (this->*callback_)(processEntry.th32ProcessID);
+                            }
+                            catch (const std::exception&)
+                            {
+                                set_color(FOREGROUND_RED, FOREGROUND_INTENSITY);
+                                cout << "[!] Inject CallBack Function Failed!\n";
+                                set_normal();
+                            }
+
+                            if (!this->brutalmod)
+                                break;
+                        }
                     }
                     else {
                         set_color(FOREGROUND_RED, FOREGROUND_INTENSITY);
@@ -491,6 +524,23 @@ void Injector::Injectable() {
                         set_color(FOREGROUND_RED | FOREGROUND_GREEN, FOREGROUND_INTENSITY);
                         cout << "[^] X86 Injectable\t";
                         set_normal();
+                        // x64 回调注入
+                        if (this->callback_ != NULL) {
+                            cout << "Process ID: " << processEntry.th32ProcessID << "\t";
+                            wcout << "Process Name: " << processEntry.szExeFile << "\n";
+                            try
+                            {
+                                (this->*callback_)(processEntry.th32ProcessID);
+                            }
+                            catch (const std::exception&)
+                            {
+                                set_color(FOREGROUND_RED, FOREGROUND_INTENSITY);
+                                cout << "[!] Inject CallBack Function Failed!\n";
+                                set_normal();
+                            }
+                            if (!this->brutalmod)
+                                break;
+                        }
                     }
                     else {
                         set_color(FOREGROUND_RED, FOREGROUND_INTENSITY);
@@ -502,7 +552,6 @@ void Injector::Injectable() {
                     cout << "Process ID: " << processEntry.th32ProcessID << "\t";
                     wcout << "Process Name: " << processEntry.szExeFile << "\n";
                 }
-
             }
         } while (Process32Next(hSnapshot, &processEntry));
     }

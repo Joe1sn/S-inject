@@ -12,12 +12,15 @@ using std::string;
 
 #define STATUS_SUCCESS 0x00000000L
 
-
 class Injector
 {
+public:
+	typedef void (Injector::* CallbackFunction)(DWORD pid);	//»Øµ÷º¯Êý
 private:
 	string DllPath;
 	bool exist;
+	CallbackFunction callback_;
+	bool brutalmod;
 
 public:
 	Injector(string dll_path);
@@ -38,7 +41,9 @@ public:
 	void ContextShellcodeInject(string basedsc, DWORD pid);
 
 	DWORD GetPidName(char name[]);
-	void setter(string dll_path);
+	void DllPathsetter(string dll_path);
+	void CallBackSetter(CallbackFunction InjecMethod);
+	void BrutalSetter(bool crazy);
 
 private:
 	bool bFileExists(string filePath);
