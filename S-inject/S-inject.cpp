@@ -66,8 +66,16 @@ int main(int argc, char* argv[])
 			break;
 		}
 		injector.RemoteThreadInject(pid);
-		injector.unInject(pid);
 		cout << "[*] Remote Injection Complete\n";
+		cout << "[?] Uninject DLL? Y/N\n";
+		cin.ignore();
+		char choice = 0;
+		scanf_s("%c", &choice, 1);
+		cout << choice << endl;
+		if (choice == 'Y') {
+			injector.unInject(pid);
+			cout << "[*] Uninject Remote DLL with FreeLib\n";
+		}
 		break;
 	}
 	case 2: {
