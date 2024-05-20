@@ -125,7 +125,7 @@ void Injector::RemoteThreadInject(DWORD pid) {
     }
 
     HMODULE Ntdll = LoadLibraryA("kernel32.dll");
-    if (Ntdll <= 0) {
+    if (Ntdll == INVALID_HANDLE_VALUE) {
 #ifdef _DEBUG
         cerr << "[!] Failed Loadlibrary kernel32: " << GetLastError() << endl;
 #endif // _DEBUG
@@ -395,7 +395,7 @@ void Injector::ApcInject(DWORD pid) {
     }
 
     HMODULE Ntdll = LoadLibraryA("kernel32.dll");
-    if (Ntdll <= 0) {
+    if (Ntdll == INVALID_HANDLE_VALUE) {
 #ifdef _DEBUG
         cerr << "[!] Failed Loadlibrary kernel32: " << GetLastError() << endl;
 #endif // _DEBUG
@@ -563,6 +563,61 @@ void Injector::Injectable() {
     }
 
     CloseHandle(hSnapshot);
+}
+
+
+std::vector<ProcessInfo> Injector::InjectList() {
+    std::vector<ProcessInfo> procInfo;
+
+    // 获取进程快照
+    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnapshot == INVALID_HANDLE_VALUE) {
+#ifdef _DEBUG
+        cerr << "[!] Failed to create process snapshot." << endl;
+#endif // _DEBUG
+        return procInfo;
+    }
+
+    PROCESSENTRY32 processEntry;
+    processEntry.dwSize = sizeof(PROCESSENTRY32);
+    HANDLE hProcess = NULL;
+    BOOL bWow64 = FALSE;
+
+    if (Process32First(hSnapshot, &processEntry)) {
+        do {
+            if (this->bInjectable(processEntry.th32ProcessID)) {
+                hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, processEntry.th32ProcessID);
+                if (hProcess == NULL || hProcess == INVALID_HANDLE_VALUE) {
+#ifdef _DEBUG
+                    cerr << "[!] Failed to open process." << endl;
+#endif // _DEBUG
+                    CloseHandle(hSnapshot);
+                    return procInfo;
+                }
+                if (IsWow64Process(hProcess, &bWow64)) {
+                    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+#ifdef _WIN64   
+                    if (!bWow64)
+                            procInfo.push_back(ProcessInfo{ processEntry.th32ProcessID ,processEntry.szExeFile });
+#elif _WIN32
+                    if (bWow64)
+                            procInfo.push_back(ProcessInfo{ processEntry.th32ProcessID ,processEntry.szExeFile });
+
+#endif // _WIN64
+                    //procInfo.push_back(ProcessInfo{ processEntry.th32ProcessID ,processEntry.szExeFile });
+                }
+            }
+        } while (Process32Next(hSnapshot, &processEntry));
+    }
+    else {
+#ifdef _DEBUG
+        cerr << "[!] Failed to retrieve process information." << endl;
+#endif
+        ;
+    }
+
+    CloseHandle(hSnapshot);
+    return procInfo;
 }
 
 

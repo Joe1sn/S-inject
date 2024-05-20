@@ -1,7 +1,11 @@
 #pragma once
+#include "global.h"
+
 #include <Windows.h>
 #include <iostream>
 #include <tlhelp32.h>
+#include <vector>
+
 using std::string;
 
 #define DEREF( name )*(UINT_PTR *)(name)
@@ -11,6 +15,8 @@ using std::string;
 #define DEREF_8( name )*(BYTE *)(name)
 
 #define STATUS_SUCCESS 0x00000000L
+
+
 
 class Injector
 {
@@ -35,6 +41,7 @@ public:
 	void ApcInject(DWORD pid);
 
 	void Injectable();
+	std::vector<ProcessInfo> InjectList();
 
 	void ShellcodeInject(string basedsc, DWORD pid);
 	void ApcShellcodeInject(string basedsc, DWORD pid);
