@@ -17,7 +17,7 @@
 
   DLL注入的功能中输入让`pid=0`，如果遇到一个能够被注入的进程那么就会注入，成功注入可能性低
 
-  ![image-20240401105145205](D:\Github\S-inject\old_README.assets\image-20240401105145205.png)
+  ![image-20240401105145205](./old_README.assets/image-20240401105145205.png)
 
 - 暴力注入- **可能对系统造成损害**
 
@@ -27,7 +27,7 @@
 
   程序遍历所有可被注入程序，对每一个能被注入的进程进行DLL注入
 
-  ![image-20240401105329537](D:\Github\S-inject\old_README.assets\image-20240401105329537.png)
+  ![image-20240401105329537](./old_README.assets/image-20240401105329537.png)
 
 ## Shellcode注入
 
@@ -39,11 +39,11 @@ base64编码后shellcode
 SDH/SPfnZUiLWGBIi1sYSItbIEiLG0iLG0iLWyBJidiLWzxMAcNIMclmgcH/iEjB6QiLFAtMAcJNMdJEi1IcTQHCTTHbRItaIE0Bw00x5ESLYiRNAcTrMltZSDHASIniUUiLDCRIMf9BizyDTAHHSInW86Z0BUj/wOvmWWZBiwREQYsEgkwBwFPDSDHJgMEHSLgPqJaRuoeanEj30EjB6AhQUeiw////SYnGSDHJSPfhUEi4nJ6TnNGah5pI99BQSInhSP/CSIPsIEH/1g==
 ```
 
-![image-20240205135709302](D:\Github\S-inject\old_README.assets\image-20240205135709302.png)
+![image-20240205135709302](./old_README.assets/image-20240205135709302.png)
 
 以CobaltStrike Shellcode为例子
 
-![image-20240205140305351](D:\Github\S-inject\old_README.assets\image-20240205140305351.png)
+![image-20240205140305351](./old_README.assets/image-20240205140305351.png)
 
 ### 关于使用不可交互终端
 
@@ -59,7 +59,7 @@ echo "<option index>`n`<pid>`n`<base64 Shellcode>" | <S-inject Path>
 #(echo 4`n`16900`n`SDH/SPfnZUiLWGBIi1sYSItbIEiLG0iLG0iLWyBJidiLWzxMAcNIMclmgcH/iEjB6QiLFAtMAcJNMdJEi1IcTQHCTTHbRItaIE0Bw00x5ESLYiRNAcTrMltZSDHASIniUUiLDCRIMf9BizyDTAHHSInW86Z0BUj/wOvmWWZBiwREQYsEgkwBwFPDSDHJgMEHSLgPqJaRuoeanEj30EjB6AhQUeiw////SYnGSDHJSPfhUEi4nJ6TnNGah5pI99BQSInhSP/CSIPsIEH/1g==) |  D:\Github\S-inject\x64\Release\S-inject.exe
 ```
 
-![image-20240205140815069](D:\Github\S-inject\old_README.assets\image-20240205140815069.png)
+![image-20240205140815069](./old_README.assets/image-20240205140815069.png)
 
 ## DLL注入
 
@@ -67,7 +67,7 @@ echo "<option index>`n`<pid>`n`<base64 Shellcode>" | <S-inject Path>
 
 直接在终端中启动，根据菜单选择功能即可，如枚举可注入进程
 
-![image-20240205125036362](D:\Github\S-inject\old_README.assets\image-20240205125036362.png)
+![image-20240205125036362](./old_README.assets/image-20240205125036362.png)
 
 ### B, 不可交互终端
 
@@ -86,7 +86,7 @@ x64
   #echo "1`n`D:\Github\S-inject\Test Files\TestDll_x64.dll`n`20176" | D:\Github\S-inject\x64\Release\S-inject.exe
   ```
 
-  ![image-20240205131438254](D:\Github\S-inject\old_README.assets\image-20240205131438254.png)
+  ![image-20240205131438254](./old_README.assets/image-20240205131438254.png)
 
 - cmd
 
@@ -98,7 +98,7 @@ x64
   #powershell -c echo "1`n`D:\Github\S-inject\Test Files\TestDll_x64.dll`n`20176" | D:\Github\S-inject\x64\Release\S-inject.exe
   ```
 
-  ![image-20240205131316348](D:\Github\S-inject\old_README.assets\image-20240205131316348.png)
+  ![image-20240205131316348](./old_README.assets/image-20240205131316348.png)
 
   cmd.exe
 
@@ -108,7 +108,7 @@ x64
   #(echo 1 D:\Github\S-inject\Test Files\TestDll_x64.dll &echo 22268) | D:\Github\S-inject\x64\Release\S-inject.exe
   ```
 
-  ![image-20240205135210534](D:\Github\S-inject\old_README.assets\image-20240205135210534.png)
+  ![image-20240205135210534](./old_README.assets/image-20240205135210534.png)
 
 
 
