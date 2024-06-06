@@ -20,9 +20,37 @@
 # Update
 
 - **[2024-3-8]** 更新64位`CreateRemoteThread`为直接系统调用，方法采用`SysWhispers3`项目
+
 - **[2024-4-1]** 更新DLL的暴力注入，详细见readme->使用->DLL自动注入/暴力注入
+
 - **[2024-5-16]** 更新远程线程注入，让取消DLL注入更加便捷，便于第二次注入
+
 - **[2024-5-24]**  **更新GUI图形化界面**，之前版本只保留原始二进制文件。貌似之前就被defender识别到了....
+
+- **[2024-6-X]** 
+
+  1. 更好的GUI布局，支持Docking。
+  2. 代码整理，优化项目文件结构，尽量贴合我认为（~~知道~~）的现代cpp规范。
+  3. 遍历部分尽量使用 `NtQuerySystemInformation`  
+  
+  Todo如下
+
+  - [ ] `Injector::Injectable` `Injector::injectList`使用`NtQuerySystemInformation`取代`Process32xxx`
+  - [ ] 静态字符串编码(xorstr功能)
+
+# New Feature
+
+- [2024-6-6] V2.1更新
+
+  1. Docking，拖拽可以重新排版
+
+     ![image-20240606124658850](./README.assets/image-20240606124658850.png)
+     
+  2. 遍历进程倒序，更快找到最近启动的进程
+  
+     ![image-20240606131806622](./README.assets/image-20240606131806622.png)
+  
+     
 
 # 免杀效果
 
