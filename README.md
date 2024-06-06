@@ -31,12 +31,8 @@
 
   1. 更好的GUI布局，支持Docking。
   2. 代码整理，优化项目文件结构，尽量贴合我认为（~~知道~~）的现代cpp规范。
-  3. 遍历部分使用 `NtQuerySystemInformation`  
+  3. 遍历部分使用 `NtQuerySystemInformation`  （虽然会导致快速刷新）
   
-  Todo如下
-
-  - [x] `Injector::Injectable` `Injector::injectList`使用`NtQuerySystemInformation`取代`Process32xxx`
-  - [ ] 静态字符串编码(xorstr功能)
 
 # New Feature
 
@@ -46,11 +42,9 @@
 
      ![image-20240606124658850](./README.assets/image-20240606124658850.png)
      
-  2. 遍历进程倒序，更快找到最近启动的进程
+  2. ImGUI窗口排版通过`imgui.ini`保存，可参考我的排版（ini文件位于bin中，使用时放于同一目录下）
   
-     ![image-20240606131806622](./README.assets/image-20240606131806622.png)
-  
-     
+     ![image-20240606224950591](./README.assets/image-20240606224950591.png)
 
 # 免杀效果
 
@@ -86,7 +80,7 @@
 
 1.x版本（无图像化界面）使用说明见：`oldREADME.md`
 
-![image-20240520101531243](./README.assets/image-20240520101531243.png)
+![image-20240606225058387](./README.assets/image-20240606225058387.png)
 
 直接勾选对应功能，选择DLL/Shellcode，和对应进程的PID
 

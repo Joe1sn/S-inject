@@ -25,4 +25,20 @@ namespace Crypto {
         }
         return std::string(decodedData.begin(), decodedData.end());
     }
+
+    std::string Base64Encode(const std::vector<BYTE>& data) {
+        DWORD encodedSize = 0;
+        if (!CryptBinaryToStringA(data.data(), data.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &encodedSize)) {
+            Error::WarnMsgBox(L"Error calculating encoded size");
+            return "";
+        }
+
+        std::vector<char> encodedData(encodedSize);
+        if (!CryptBinaryToStringA(data.data(), data.size(), CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, encodedData.data(), &encodedSize)) {
+            Error::WarnMsgBox(L"Error encoding data to Base64");
+            return "";
+        }
+
+        return std::string(encodedData.data(), encodedSize);
+    }
 }

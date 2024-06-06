@@ -8,13 +8,12 @@
 #include <Windows.h>
 #include <tlhelp32.h>
 
-using namespace std;
-
-Injector::Injector(string dll_path) {
+Injector::Injector(std::string dll_path) {
     this->DllPath = dll_path;
     this->callback_ = nullptr;
     this->exist = this->bFileExists(this->DllPath);
     
+    //constexpr const std::wstring = Crypto::xorstr()
     if (!exist) {
         Error::ErrorMsgBox(L"File Not Exist");
         return;
@@ -55,7 +54,7 @@ Injector::Injector() {
 
 Injector::~Injector() {}
 
-void Injector::dllPathSetter(string dll_path) {
+void Injector::dllPathSetter(std::string dll_path) {
     this->DllPath = dll_path;
     this->exist = this->bFileExists(this->DllPath);
     if (!exist) {
@@ -94,15 +93,15 @@ void Injector::remoteThreadInject(DWORD pid) {
         return;
     }
 
-    HMODULE Ntdll = LoadLibraryA("kernel32.dll");
-    if (Ntdll == INVALID_HANDLE_VALUE) {
+    HMODULE hmodDLL = LoadLibraryA("kernel32.dll");
+    if (hmodDLL == INVALID_HANDLE_VALUE || hmodDLL == NULL) {
         Error::ErrorMsgBox(L"Failed Loadlibrary kernel32");
         VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
         CloseHandle(hProcess);
         return;
     }
 
-    LPVOID LoadLibraryBase = GetProcAddress(Ntdll, "LoadLibraryA");
+    LPVOID LoadLibraryBase = GetProcAddress(hmodDLL, "LoadLibraryA");
     if (LoadLibraryBase == nullptr) {
         Error::ErrorMsgBox(L"No Such Function in Library");
         VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
@@ -117,7 +116,7 @@ void Injector::remoteThreadInject(DWORD pid) {
         Error::ErrorMsgBox(L"Create Remote Thread Failed!");
         VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
         CloseHandle(hProcess);
-        FreeModule(Ntdll);
+        FreeModule(hmodDLL);
         return;
     }
 #else
@@ -127,7 +126,7 @@ void Injector::remoteThreadInject(DWORD pid) {
         Error::ErrorMsgBox(L"Create Remote Thread Failed!");
         VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
         CloseHandle(hProcess);
-        FreeModule(Ntdll);
+        FreeModule(hmodDLL);
         return;
     }
 #endif // _WIN32
@@ -137,7 +136,7 @@ void Injector::remoteThreadInject(DWORD pid) {
     WaitForSingleObject(hRemoteProcess, 500);
     VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
     CloseHandle(hProcess);
-    FreeModule(Ntdll);
+    FreeModule(hmodDLL);
 }
 
 void Injector::unInject(DWORD pid) {
@@ -421,7 +420,6 @@ std::vector<ProcessInfo> Injector::injectList() {
     buffer.resize(bufferSize);
     status = NtQuerySystemInformation(SystemProcessInformation, buffer.data(), bufferSize, &bufferSize);
     if (!NT_SUCCESS(status)) {
-        //Error::ErrorMsgBox(L"NtQuerySystemInformation failed with status");
         return procInfo;
     }
     PMySYSTEM_PROCESS_INFORMATION processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(buffer.data());
@@ -460,16 +458,16 @@ std::vector<ProcessInfo> Injector::injectList() {
     }
 
     //std::reverse(procInfo.begin(), procInfo.end());
-    //note: 删除原因-刷新太快
+    //note: remove, due to fast refresh
     return procInfo;
 }
 
 
 /*                  Inject With Shellcode                  */
-void Injector::shellcodeInject(string basedsc, DWORD pid) {
+void Injector::shellcodeInject(std::string basedsc, DWORD pid) {
     BOOL bRet;
 
-    string shellcode = Crypto::Base64Decode(basedsc);
+    std::string shellcode = Crypto::Base64Decode(basedsc);
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
     DWORD size = shellcode.size() + 1;
     LPVOID pAddress = VirtualAllocEx(hProcess, NULL, size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
@@ -520,10 +518,10 @@ void Injector::shellcodeInject(string basedsc, DWORD pid) {
 
 /*                  Inject Shellcode With APC Dispatch                 */
 //TODO:
-void Injector::apcShellcodeInject(string basedsc, DWORD pid) {
+void Injector::apcShellcodeInject(std::string basedsc, DWORD pid) {
     BOOL bRet;
 
-    string shellcode = Crypto::Base64Decode(basedsc);
+    std::string shellcode = Crypto::Base64Decode(basedsc);
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
     DWORD size = shellcode.size() + 1;
     LPVOID pAddress = VirtualAllocEx(hProcess, NULL, size, MEM_COMMIT, PAGE_READWRITE);//???? Sth intresting happend here Why need READ
@@ -541,11 +539,13 @@ void Injector::apcShellcodeInject(string basedsc, DWORD pid) {
         return;
     }
     shellcode = "\x00\x00\x00\x00";
-    // loop process -> then loop thread
+
+    // ready to  loop thread
     ULONG bufferSize = 0;
     HANDLE hThread;
     std::vector<BYTE> buffer;
-    if (this->NtQuerySystemInformation == nullptr) {
+
+    if (this->NtQuerySystemInformation == nullptr) {    //check if NtQuerySystemInformation is ready
         Error::ErrorMsgBox(L"NtQuerySystemInformation is NULL");
         VirtualFreeEx(hProcess, pAddress, size, MEM_COMMIT);
         CloseHandle(hProcess);
@@ -560,22 +560,20 @@ void Injector::apcShellcodeInject(string basedsc, DWORD pid) {
         return;
     }
 
-    PMySYSTEM_PROCESS_INFORMATION processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(buffer.data());
-    for (; processInfo; ) {
-        if (reinterpret_cast<DWORD>(processInfo->ProcessId) == pid) {
-                // loop thread
-            for (ULONG i = 0; i < processInfo->NumberOfThreads; i++) {
+    PMySYSTEM_PROCESS_INFORMATION processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(buffer.data()); // init process information
+    for (; processInfo; ) {                                             //loop process
+        if (reinterpret_cast<DWORD>(processInfo->ProcessId) == pid) {   //wanted pid
+            for (ULONG i = 0; i < processInfo->NumberOfThreads; i++) {  //loop thread
                 hThread = OpenThread(
                     PROCESS_ALL_ACCESS,
                     FALSE,
                     reinterpret_cast<DWORD>(processInfo->Threads[i].ClientId.UniqueThread));
-                if (hThread == INVALID_HANDLE_VALUE || hThread == NULL) {
+                if (hThread == INVALID_HANDLE_VALUE || hThread == NULL) {   //invalid thread handle
                     continue;
                 }
-                
                 DWORD lpflOldProtect;
-                VirtualProtectEx(hProcess, pAddress, (SIZE_T)size + 1, PAGE_EXECUTE, &lpflOldProtect);
-                DWORD dwRet = QueueUserAPC((PAPCFUNC)pAddress, hThread, NULL);
+                VirtualProtectEx(hProcess, pAddress, (SIZE_T)(size + 1), PAGE_EXECUTE, &lpflOldProtect);
+                DWORD dwRet = QueueUserAPC(reinterpret_cast<PAPCFUNC>(pAddress), hThread, NULL);
 
                 if (dwRet > 0)	bStat = TRUE;
                 CloseHandle(hThread);
@@ -585,7 +583,6 @@ void Injector::apcShellcodeInject(string basedsc, DWORD pid) {
         }
         if (processInfo->NextEntryOffset == 0)
             break;
-        //processInfo = (PSYSTEM_PROCESS_INFORMATION)((BYTE*)processInfo + processInfo->NextEntryOffset);
         processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(
             reinterpret_cast<PBYTE>(processInfo) + processInfo->NextEntryOffset
             );
@@ -597,10 +594,10 @@ void Injector::apcShellcodeInject(string basedsc, DWORD pid) {
 
 /*                  Inject Shellcode With Context Resume                 */
 //TODO:
-void Injector::contextShellcodeInject(string basedsc, DWORD pid) {
+void Injector::contextShellcodeInject(std::string basedsc, DWORD pid) {
     BOOL bRet;
 
-    string shellcode = Crypto::Base64Decode(basedsc);
+    std::string shellcode = Crypto::Base64Decode(basedsc);
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
     DWORD size = shellcode.size() + 1;
     LPVOID pAddress = VirtualAllocEx(hProcess, NULL, size, MEM_COMMIT, PAGE_READWRITE);
@@ -713,7 +710,7 @@ void Injector::contextShellcodeInject(string basedsc, DWORD pid) {
 
 
 /*                  Some Gadget                  */
-bool Injector::bFileExists(string filePath) {
+bool Injector::bFileExists(std::string filePath) {
     DWORD fileAttributes = GetFileAttributesA(filePath.c_str());
 
     if (fileAttributes != INVALID_FILE_ATTRIBUTES &&
