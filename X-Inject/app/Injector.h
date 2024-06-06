@@ -47,7 +47,6 @@ public:
 	void reflectInject(DWORD pid);
 	void apcInject(DWORD pid);
 
-	void Injectable();
 	std::vector<ProcessInfo> injectList();
 
 	void shellcodeInject(std::string basedsc, DWORD pid);

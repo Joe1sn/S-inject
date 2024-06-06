@@ -31,11 +31,11 @@
 
   1. 更好的GUI布局，支持Docking。
   2. 代码整理，优化项目文件结构，尽量贴合我认为（~~知道~~）的现代cpp规范。
-  3. 遍历部分尽量使用 `NtQuerySystemInformation`  
+  3. 遍历部分使用 `NtQuerySystemInformation`  
   
   Todo如下
 
-  - [ ] `Injector::Injectable` `Injector::injectList`使用`NtQuerySystemInformation`取代`Process32xxx`
+  - [x] `Injector::Injectable` `Injector::injectList`使用`NtQuerySystemInformation`取代`Process32xxx`
   - [ ] 静态字符串编码(xorstr功能)
 
 # New Feature

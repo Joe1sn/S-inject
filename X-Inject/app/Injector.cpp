@@ -152,26 +152,21 @@ void Injector::unInject(DWORD pid) {
 
     HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
     if (hProcess == NULL) {
-#ifdef _DEBUG
-        cerr << "[!] Open Process Failed: " << GetLastError() << endl;
-#endif // _DEBUG
+        Error::ErrorMsgBox(L" Open Process Failed:");
         return;
     }
 
     HMODULE hModule = GetModuleHandle(L"kernel32.dll");
     if (hModule == NULL) {
-#ifdef _DEBUG
-        cerr << "[!] Get Module Failed: " << GetLastError() << endl;
-#endif // _DEBUG
+        Error::ErrorMsgBox(L"Get Module Failed:");
         CloseHandle(hProcess);
         return;
     }
 
     LPTHREAD_START_ROUTINE hFreeLib = (LPTHREAD_START_ROUTINE)GetProcAddress(hModule, "FreeLibrary");
     if (hFreeLib == NULL) {
-#ifdef _DEBUG
-        cerr << "[!] Found FreeLibrary Failed: " << GetLastError() << endl;
-#endif // _DEBUG
+        Error::ErrorMsgBox(L"Found FreeLibrary Failed:");
+
         CloseHandle(hProcess);
         FreeModule(hModule);
         return;
@@ -182,9 +177,8 @@ void Injector::unInject(DWORD pid) {
 #ifdef _WIN64
     NTSTATUS status = Sw3NtCreateThreadEx(&hThread, 0x1FFFFF, NULL, hProcess, (LPTHREAD_START_ROUTINE)hFreeLib, result.modBaseAddr, FALSE, NULL, NULL, NULL, NULL);
     if (hThread == INVALID_HANDLE_VALUE || hThread == NULL || status != STATUS_SUCCESS) {
-#ifdef _DEBUG
-        cerr << "[!] Free Remote Library Failed!: " << GetLastError() << endl;;
-#endif // _DEBUG
+        Error::ErrorMsgBox(L"Free Remote Library Failed!:");
+
         CloseHandle(hProcess);
         return;
     }
@@ -192,9 +186,8 @@ void Injector::unInject(DWORD pid) {
 #ifdef _WIN32
     hThread = CreateRemoteThread(hProcess, NULL, 0, hFreeLib, result.modBaseAddr, 0, NULL);
     if (hThread == INVALID_HANDLE_VALUE || hThread == NULL) {
-#ifdef _DEBUG
-        cerr << "[!] Free Remote Library Failed!: " << GetLastError() << endl;;
-#endif // _DEBUG
+        Error::ErrorMsgBox(L"Free Remote Library Failed!:");
+
         CloseHandle(hProcess);
         return;
     }
@@ -411,161 +404,63 @@ void Injector::apcInject(DWORD pid) {
 
 
 /*                  List Injectable Process                  */
-void Injector::Injectable() {
-    // 获取进程快照
-    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (hSnapshot == INVALID_HANDLE_VALUE) {
-        Error::ErrorMsgBox(L"Failed to create process snapshot.");
-        return;
-    }
-
-    PROCESSENTRY32 processEntry = {};
-    processEntry.dwSize = sizeof(PROCESSENTRY32);
-    HANDLE hProcess = NULL;
-    BOOL bWow64 = FALSE;
-
-    if (Process32First(hSnapshot, &processEntry)) {
-        do {
-            if (this->bInjectable(processEntry.th32ProcessID)) {
-                hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, processEntry.th32ProcessID);
-                if (hProcess == NULL || hProcess == INVALID_HANDLE_VALUE) {
-#ifdef _DEBUG
-                    cerr << "[!] Failed to open process." << endl;
-#endif // _DEBUG
-                    CloseHandle(hSnapshot);
-                    return;
-                }
-                if (IsWow64Process(hProcess, &bWow64)) {
-                    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-#ifdef _WIN64   
-                    if (!bWow64) {
-                        //set_color(FOREGROUND_RED | FOREGROUND_GREEN, FOREGROUND_INTENSITY);
-                        cout << "[^] X64 Injectable\t";
-                        //set_normal();
-                        // x64 回调注入
-                        if (this->callback_ != NULL) {
-
-                            cout << "Process ID: " << processEntry.th32ProcessID << "\t";
-                            wcout << "Process Name: " << processEntry.szExeFile << "\n";
-                            try
-                            {
-                                (this->*callback_)(processEntry.th32ProcessID);
-                            }
-                            catch (const std::exception&)
-                            {
-                                //set_color(FOREGROUND_RED, FOREGROUND_INTENSITY);
-                                cout << "[!] Inject CallBack Function Failed!\n";
-                                //set_normal();
-                            }
-
-                            //if (!this->brutalmod)
-                            break;
-                        }
-                    }
-                    else {
-                        //set_color(FOREGROUND_RED, FOREGROUND_INTENSITY);
-                        cout << "[^] X32 Injectable, Need 32 bit injector\t";
-                        //set_normal();
-                    }
-#else
-                    if (bWow64) {
-                        //set_color(FOREGROUND_RED | FOREGROUND_GREEN, FOREGROUND_INTENSITY);
-                        cout << "[^] X86 Injectable\t";
-                        //set_normal();
-                        // x64 回调注入
-                        if (this->callback_ != NULL) {
-                            cout << "Process ID: " << processEntry.th32ProcessID << "\t";
-                            wcout << "Process Name: " << processEntry.szExeFile << "\n";
-                            try
-                            {
-                                (this->*callback_)(processEntry.th32ProcessID);
-                            }
-                            catch (const std::exception&)
-                            {
-                                //set_color(FOREGROUND_RED, FOREGROUND_INTENSITY);
-                                cout << "[!] Inject CallBack Function Failed!\n";
-                                //set_normal();
-                            }
-                            //if (!this->brutalmod)
-                            break;
-                        }
-                    }
-                    else {
-                        //set_color(FOREGROUND_RED, FOREGROUND_INTENSITY);
-                        cout << "[^] X64 Injectable, Need 64 bit injector\t";
-                        //set_normal();
-                    }
-
-#endif // _WIN64
-                    cout << "Process ID: " << processEntry.th32ProcessID << "\t";
-                    wcout << "Process Name: " << processEntry.szExeFile << "\n";
-                }
-            }
-        } while (Process32Next(hSnapshot, &processEntry));
-    }
-    else {
-#ifdef _DEBUG
-        cerr << "[!] Failed to retrieve process information." << endl;
-#endif
-        ;
-    }
-
-    CloseHandle(hSnapshot);
-}
-
-
 std::vector<ProcessInfo> Injector::injectList() {
     std::vector<ProcessInfo> procInfo;
 
-    // 获取进程快照
-    HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (hSnapshot == INVALID_HANDLE_VALUE) {
-#ifdef _DEBUG
-        cerr << "[!] Failed to create process snapshot." << endl;
-#endif // _DEBUG
+    // loop process -> then loop thread
+    ULONG bufferSize = 0;
+    HANDLE hProcess = NULL;
+    std::vector<BYTE> buffer;
+    if (this->NtQuerySystemInformation == nullptr) {
+        Error::ErrorMsgBox(L"NtQuerySystemInformation is NULL");
         return procInfo;
     }
-
-    PROCESSENTRY32 processEntry = {};
-    processEntry.dwSize = sizeof(PROCESSENTRY32);
-    HANDLE hProcess = NULL;
+    NTSTATUS status = this->NtQuerySystemInformation(SystemProcessInformation, NULL, 0, &bufferSize);
     BOOL bWow64 = FALSE;
 
-    if (Process32First(hSnapshot, &processEntry)) {
-        do {
-            if (this->bInjectable(processEntry.th32ProcessID)) {
-                hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, processEntry.th32ProcessID);
-                if (hProcess == NULL || hProcess == INVALID_HANDLE_VALUE) {
-#ifdef _DEBUG
-                    cerr << "[!] Failed to open process." << endl;
-#endif // _DEBUG
-                    CloseHandle(hSnapshot);
-                    return procInfo;
-                }
-                if (IsWow64Process(hProcess, &bWow64)) {
-                    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-#ifdef _WIN64   
-                    if (!bWow64)
-                        procInfo.push_back(ProcessInfo{ processEntry.th32ProcessID ,processEntry.szExeFile });
+    buffer.resize(bufferSize);
+    status = NtQuerySystemInformation(SystemProcessInformation, buffer.data(), bufferSize, &bufferSize);
+    if (!NT_SUCCESS(status)) {
+        //Error::ErrorMsgBox(L"NtQuerySystemInformation failed with status");
+        return procInfo;
+    }
+    PMySYSTEM_PROCESS_INFORMATION processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(buffer.data());
+    for (;
+        processInfo;) 
+    {
+        hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, reinterpret_cast<DWORD>(processInfo->ProcessId));
+        if (hProcess == NULL || hProcess == INVALID_HANDLE_VALUE) {
+            if (processInfo->NextEntryOffset == 0)
+                break;
+            processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(
+                reinterpret_cast<PBYTE>(processInfo) + processInfo->NextEntryOffset
+                );
+            continue;
+        }
+        if (IsWow64Process(hProcess, &bWow64)) {
+#ifdef _WIN64
+            if (!bWow64)
+                procInfo.push_back(
+                    ProcessInfo{ reinterpret_cast<DWORD>(processInfo->ProcessId) , processInfo->ImageName.Buffer });
+
 #elif _WIN32
-                    if (bWow64)
-                        procInfo.push_back(ProcessInfo{ processEntry.th32ProcessID ,processEntry.szExeFile });
-
-#endif // _WIN64
-                    //procInfo.push_back(ProcessInfo{ processEntry.th32ProcessID ,processEntry.szExeFile });
-                }
-            }
-        } while (Process32Next(hSnapshot, &processEntry));
-    }
-    else {
-#ifdef _DEBUG
-        cerr << "[!] Failed to retrieve process information." << endl;
+            if (bWow64)
+                procInfo.push_back(
+                    ProcessInfo{ reinterpret_cast<DWORD>(processInfo->ProcessId) , processInfo->ImageName.Buffer });
+#else
+            Error::ErrorMsgBox(L"Only Support i386 & amd64 arch");
 #endif
-        ;
+        }
+        CloseHandle(hProcess);
+        if (processInfo->NextEntryOffset == 0)
+            break;
+        processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(
+            reinterpret_cast<PBYTE>(processInfo) + processInfo->NextEntryOffset
+            );
     }
 
-    CloseHandle(hSnapshot);
-    std::reverse(procInfo.begin(), procInfo.end());
+    //std::reverse(procInfo.begin(), procInfo.end());
+    //note: 删除原因-刷新太快
     return procInfo;
 }
 
@@ -624,6 +519,7 @@ void Injector::shellcodeInject(string basedsc, DWORD pid) {
 
 
 /*                  Inject Shellcode With APC Dispatch                 */
+//TODO:
 void Injector::apcShellcodeInject(string basedsc, DWORD pid) {
     BOOL bRet;
 
@@ -645,33 +541,38 @@ void Injector::apcShellcodeInject(string basedsc, DWORD pid) {
         return;
     }
     shellcode = "\x00\x00\x00\x00";
-
-    THREADENTRY32 te = { sizeof(THREADENTRY32) };
-    HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-    if (hThreadSnap == INVALID_HANDLE_VALUE || hThreadSnap == 0) {
-
-        Error::ErrorMsgBox(L"Create Snap Failed:");
+    // loop process -> then loop thread
+    ULONG bufferSize = 0;
+    HANDLE hThread;
+    std::vector<BYTE> buffer;
+    if (this->NtQuerySystemInformation == nullptr) {
+        Error::ErrorMsgBox(L"NtQuerySystemInformation is NULL");
         VirtualFreeEx(hProcess, pAddress, size, MEM_COMMIT);
         CloseHandle(hProcess);
         return;
     }
+    NTSTATUS status = this->NtQuerySystemInformation(SystemProcessInformation, NULL, 0, &bufferSize);
+    bool bStat = FALSE;
 
-    BOOL bStat = FALSE;
-    HANDLE hThread = NULL;
+    buffer.resize(bufferSize);
+    status = NtQuerySystemInformation(SystemProcessInformation, buffer.data(), bufferSize, &bufferSize);
+    if (!NT_SUCCESS(status)) {
+        return;
+    }
 
-    if (Thread32First(hThreadSnap, &te)) {
-        do
-        {
-            if (te.th32OwnerProcessID == pid) {
-                hThread = OpenThread(PROCESS_ALL_ACCESS, FALSE, te.th32ThreadID);
-                //hThread = OpenThread(THREAD_ALL_ACCESS, FALSE, te.th32ThreadID);
+    PMySYSTEM_PROCESS_INFORMATION processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(buffer.data());
+    for (; processInfo; ) {
+        if (reinterpret_cast<DWORD>(processInfo->ProcessId) == pid) {
+                // loop thread
+            for (ULONG i = 0; i < processInfo->NumberOfThreads; i++) {
+                hThread = OpenThread(
+                    PROCESS_ALL_ACCESS,
+                    FALSE,
+                    reinterpret_cast<DWORD>(processInfo->Threads[i].ClientId.UniqueThread));
                 if (hThread == INVALID_HANDLE_VALUE || hThread == NULL) {
-                    Error::ErrorMsgBox(L"Error In APC Injection");
-                    VirtualFreeEx(hProcess, pAddress, 0x300, MEM_COMMIT);
-                    CloseHandle(hProcess);
-                    CloseHandle(hThreadSnap);
-                    return;
+                    continue;
                 }
+                
                 DWORD lpflOldProtect;
                 VirtualProtectEx(hProcess, pAddress, (SIZE_T)size + 1, PAGE_EXECUTE, &lpflOldProtect);
                 DWORD dwRet = QueueUserAPC((PAPCFUNC)pAddress, hThread, NULL);
@@ -680,15 +581,22 @@ void Injector::apcShellcodeInject(string basedsc, DWORD pid) {
                 CloseHandle(hThread);
                 break;
             }
-        } while (Thread32Next(hThreadSnap, &te));
+            break;
+        }
+        if (processInfo->NextEntryOffset == 0)
+            break;
+        //processInfo = (PSYSTEM_PROCESS_INFORMATION)((BYTE*)processInfo + processInfo->NextEntryOffset);
+        processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(
+            reinterpret_cast<PBYTE>(processInfo) + processInfo->NextEntryOffset
+            );
     }
-    VirtualFreeEx(hProcess, pAddress, 0x300, MEM_COMMIT);
-    CloseHandle(hProcess);
-    CloseHandle(hThreadSnap);
+    if (!bStat)
+        Error::ErrorMsgBox(L"Apc Inject Shellcode Failed\nAll thread can't be inject");
 }
 
 
 /*                  Inject Shellcode With Context Resume                 */
+//TODO:
 void Injector::contextShellcodeInject(string basedsc, DWORD pid) {
     BOOL bRet;
 
@@ -710,37 +618,43 @@ void Injector::contextShellcodeInject(string basedsc, DWORD pid) {
         return;
     }
     shellcode = "\x00\x00\x00\x00";
-
-    THREADENTRY32 te = { sizeof(THREADENTRY32) };
-    HANDLE hThreadSnap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-    if (hThreadSnap == INVALID_HANDLE_VALUE || hThreadSnap == 0) {
-        Error::ErrorMsgBox(L"Create Snap Failed:");
-
+    ULONG bufferSize = 0;
+    HANDLE hThread;
+    std::vector<BYTE> buffer;
+    if (this->NtQuerySystemInformation == nullptr) {
+        Error::ErrorMsgBox(L"NtQuerySystemInformation is NULL");
         VirtualFreeEx(hProcess, pAddress, size, MEM_COMMIT);
         CloseHandle(hProcess);
         return;
     }
+    NTSTATUS status = this->NtQuerySystemInformation(SystemProcessInformation, NULL, 0, &bufferSize);
+    bool bStat = FALSE;
 
-    BOOL bStat = FALSE;
-    HANDLE hThread = NULL;
+    buffer.resize(bufferSize);
+    status = NtQuerySystemInformation(SystemProcessInformation, buffer.data(), bufferSize, &bufferSize);
+    if (!NT_SUCCESS(status)) {
+        return;
+    }
+
     DWORD dwRet = 0;
     CONTEXT context = { 0 };
     context.ContextFlags = CONTEXT_CONTROL;
 
-    //得到第一个线程(main thread)
-    if (Thread32First(hThreadSnap, &te)) {
-        //main thread can not be hijacked
-        while (Thread32Next(hThreadSnap, &te)) {
-            if (te.th32OwnerProcessID == pid) {
-                hThread = OpenThread(PROCESS_ALL_ACCESS, FALSE, te.th32ThreadID);
+    PMySYSTEM_PROCESS_INFORMATION processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(buffer.data());
+    for (; processInfo; ) {
+        if (reinterpret_cast<DWORD>(processInfo->ProcessId) == pid) {
+            // loop thread
+            for (ULONG i = 0; i < processInfo->NumberOfThreads; i++) {
+                hThread = OpenThread(
+                    PROCESS_ALL_ACCESS,
+                    FALSE,
+                    reinterpret_cast<DWORD>(processInfo->Threads[i].ClientId.UniqueThread));
                 if (hThread == INVALID_HANDLE_VALUE || hThread == NULL) {
-                    Error::ErrorMsgBox(L"Error In APC Injection");
-
-                    VirtualFreeEx(hProcess, pAddress, 0x300, MEM_COMMIT);
-                    CloseHandle(hProcess);
-                    CloseHandle(hThreadSnap);
-                    return;
+                    continue;
                 }
+                
+                ///////// FUNCTIONAL CODE
+                
                 DWORD lpflOldProtect;
                 VirtualProtectEx(hProcess, pAddress, (SIZE_T)size + 1, PAGE_EXECUTE, &lpflOldProtect);
                 dwRet = SuspendThread(hThread);
@@ -780,14 +694,19 @@ void Injector::contextShellcodeInject(string basedsc, DWORD pid) {
                     continue;
                 }
 
+                ///////// FUNCTIONAL CODE
                 CloseHandle(hThread);
                 break;
             }
+            break;
         }
+        if (processInfo->NextEntryOffset == 0)
+            break;
+        //processInfo = (PSYSTEM_PROCESS_INFORMATION)((BYTE*)processInfo + processInfo->NextEntryOffset);
+        processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(
+            reinterpret_cast<PBYTE>(processInfo) + processInfo->NextEntryOffset
+            );
     }
-    VirtualFreeEx(hProcess, pAddress, 0x300, MEM_COMMIT);
-    CloseHandle(hProcess);
-    CloseHandle(hThreadSnap);
 
 }
 

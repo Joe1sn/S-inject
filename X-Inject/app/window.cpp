@@ -19,7 +19,6 @@ VOID MainWindow::InitWindow() {
 	if (!MainWindow::bWindowOpen)
 		exit(0);
 
-
 	ImGui::Checkbox("Remote Thread DLL Inject", &MainWindow::bRemoteThreadDll);
 	ImGui::Checkbox("Reflect DLL Inject", &MainWindow::bRefelectDll);
 	ImGui::Checkbox("APC DLL Inject", &MainWindow::bApcDll);
