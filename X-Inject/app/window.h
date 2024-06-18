@@ -7,6 +7,8 @@
 
 namespace MainWindow {
 	inline Injector injector;
+	inline std::vector<ProcessInfo> procInfo;
+
 
 	inline bool bWindowOpen = true;
 	inline bool bRemoteThreadDll = false;
@@ -17,7 +19,7 @@ namespace MainWindow {
 	inline bool bContextSc = false;
 	inline bool bList = false;
 	inline bool bIninject = false;
-
+	inline bool choosePID = false;
 
 	VOID InitWindow();
 	VOID Dispatcher();

@@ -57,13 +57,17 @@ VOID MainWindow::Dispatcher() {
 	if (MainWindow::bList) {
 		MainWindow::DllList();
 	}
+	else if (!MainWindow::bList && !MainWindow::choosePID) {
+		if (!procInfo.empty())
+			procInfo.clear();
+	}
 }
 
 VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)>injectMenthod) {
 	OPENFILENAMEA ofn;
 	static char filePath[0x1000] = { 0 };
 	static char test[0x1000] = { 0 };
-	static bool choosePID = false;
+	//static bool choosePID = false;
 	static int PID = 0;
 
 	bool chooseFile = false;
@@ -73,10 +77,10 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)>injectM
 
 	ImGui::InputText("FilePath", filePath, IM_ARRAYSIZE(filePath));
 	ImGui::SameLine();
-	chooseFile = ImGui::Button("Choose File       ");
-	ImGui::InputInt("PID       ", &PID);
+	chooseFile = ImGui::Button("Choose File");
+	ImGui::InputInt("PID", &PID);
 	ImGui::SameLine();
-	ImGui::Checkbox("Choose Process", &choosePID);
+	ImGui::Checkbox("Choose Process", &MainWindow::choosePID);
 	inject = ImGui::Button("Inject");
 
 	if (chooseFile) {
@@ -90,10 +94,10 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)>injectM
 		ofn.lpstrDefExt = "";
 		if (GetOpenFileNameA(&ofn)) {}
 	}
-	if (choosePID) {
+	if (MainWindow::choosePID) {
 		PID = GetPID();
 		if (PID != 0)
-			choosePID = false;
+			MainWindow::choosePID = false;
 	}
 	if (inject && PID != 0) {
 		injector.dllPathSetter(filePath);
@@ -108,7 +112,6 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)>injectM
 
 VOID MainWindow::InjectShellcode(const char Title[], std::function<void(std::string, DWORD)>injectMenthod) {
 	static char Shellcode[0x1000] = { 0 };
-	static bool choosePID = false;
 	static int PID = 0;
 
 	bool inject = false;
@@ -118,13 +121,13 @@ VOID MainWindow::InjectShellcode(const char Title[], std::function<void(std::str
 	ImGui::InputText("Shellcode", Shellcode, IM_ARRAYSIZE(Shellcode));
 	ImGui::InputInt("PID       ", &PID);
 	ImGui::SameLine();
-	ImGui::Checkbox("Choose Process", &choosePID);
+	ImGui::Checkbox("Choose Process", &MainWindow::choosePID);
 	inject = ImGui::Button("Inject");
 
-	if (choosePID) {
+	if (MainWindow::choosePID) {
 		PID = GetPID();
 		if (PID != 0)
-			choosePID = false;
+			MainWindow::choosePID = false;
 	}
 	if (inject && PID != 0) {
 		std::string temp = Shellcode;
@@ -193,7 +196,10 @@ VOID MainWindow::ContextShellcode() {
 
 VOID MainWindow::DllList() {
 	ImGui::Begin("Injectable Process", nullptr, ImGuiWindowFlags_NoCollapse);
-	std::vector<ProcessInfo> procInfo = injector.injectList();
+
+	//TODO:
+	if (procInfo.empty())
+		procInfo = injector.injectList();
 	ImGui::BeginTable("Table", 2, ImGuiTableFlags_Borders);
 
 	// Table header
@@ -219,7 +225,8 @@ DWORD MainWindow::GetPID() {
 	bool click = false;
 	ImGui::Begin("process id", nullptr, ImGuiWindowFlags_NoCollapse);
 
-	std::vector<ProcessInfo> procInfo = injector.injectList();
+	if (procInfo.empty())
+		procInfo = injector.injectList();
 	ImGui::BeginTable("Table", 2, ImGuiTableFlags_Borders);
 
 	// Table header
@@ -241,7 +248,6 @@ DWORD MainWindow::GetPID() {
 			return procInfo[i].pid;
 		}
 	}
-	
 
 	// End table
 	ImGui::EndTable();
