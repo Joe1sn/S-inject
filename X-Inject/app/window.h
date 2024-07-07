@@ -8,7 +8,8 @@
 namespace MainWindow {
 	inline Injector injector;
 	inline std::vector<ProcessInfo> procInfoList;
-	inline std::vector<ProcessInfo> procInfoInject;
+	inline std::vector<ProcessInfo> procInfoInjectDll;
+	inline std::vector<ProcessInfo> procInfoInjectShellcode;
 
 
 	inline bool bWindowOpen = true;
@@ -42,6 +43,7 @@ namespace MainWindow {
 	VOID ContextShellcode();
 	VOID DllList();
 	VOID UnInject();
-	DWORD GetPID();
+	DWORD GetDllPID();
+	DWORD GetShellcodePID();
 }
 

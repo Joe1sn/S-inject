@@ -64,19 +64,21 @@ VOID MainWindow::Dispatcher() {
 	}
 
 	if (MainWindow::chooseDllPID) {
-		gDllPID = GetPID();
+		gDllPID = GetDllPID();
 	}
 	else if (!MainWindow::chooseDllPID) {
 		gDllPID = 0;
-		procInfoInject.clear();
+		if (!procInfoInjectDll.empty())
+			procInfoInjectDll.clear();
 	}
 
 	if (MainWindow::chooseShellcodePID) {
-		gShellcodePID = GetPID();
+		gShellcodePID = GetShellcodePID();
 	}
 	else if (!MainWindow::chooseShellcodePID) {
 		gShellcodePID = 0;
-		procInfoInject.clear();
+		if (!procInfoInjectShellcode.empty())
+			procInfoInjectShellcode.clear();
 	}
 }
 
@@ -112,6 +114,7 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)>injectM
 	}
 	if (MainWindow::chooseDllPID) {
 		PID = gDllPID;
+		gDllPID = 0;
 		if (PID != 0)
 			MainWindow::chooseDllPID = false;
 	}
@@ -142,6 +145,7 @@ VOID MainWindow::InjectShellcode(const char Title[], std::function<void(std::str
 
 	if (MainWindow::chooseShellcodePID) {
 		scPID = gShellcodePID;
+		gShellcodePID = 0;
 		if (scPID != 0)
 			MainWindow::chooseShellcodePID = false;
 	}
@@ -236,12 +240,12 @@ VOID MainWindow::DllList() {
 	ImGui::End();
 }
 
-DWORD MainWindow::GetPID() {
+DWORD MainWindow::GetDllPID() {
 	bool click = false;
 	ImGui::Begin("process id", nullptr, ImGuiWindowFlags_NoCollapse);
 
-	if (procInfoInject.empty())
-		procInfoInject = injector.injectList();
+	if (procInfoInjectDll.empty())
+		procInfoInjectDll = injector.injectList();
 	ImGui::BeginTable("Table", 2, ImGuiTableFlags_Borders);
 
 	// Table header
@@ -251,16 +255,51 @@ DWORD MainWindow::GetPID() {
 
 	// Table data
 
-	for (int i = 0; i < procInfoInject.size(); i++) {
+	for (int i = 0; i < procInfoInjectDll.size(); i++) {
 		ImGui::TableNextRow();
 		ImGui::TableNextColumn();
-		click = ImGui::Button(std::to_string(procInfoInject[i].pid).c_str());
+		click = ImGui::Button(std::to_string(procInfoInjectDll[i].pid).c_str());
 		ImGui::TableNextColumn();
-		ImGui::Text("%ws", procInfoInject[i].processName.c_str());
+		ImGui::Text("%ws", procInfoInjectDll[i].processName.c_str());
 		if (click) {
 			ImGui::EndTable();
 			ImGui::End();
-			return procInfoInject[i].pid;
+			return procInfoInjectDll[i].pid;
+		}
+	}
+
+	// End table
+	ImGui::EndTable();
+	ImGui::End();
+	return 0;
+}
+
+
+DWORD MainWindow::GetShellcodePID() {
+	bool click = false;
+	ImGui::Begin("shellcode process id", nullptr, ImGuiWindowFlags_NoCollapse);
+
+	if (procInfoInjectShellcode.empty())
+		procInfoInjectShellcode = injector.injectList();
+	ImGui::BeginTable("Table", 2, ImGuiTableFlags_Borders);
+
+	// Table header
+	ImGui::TableSetupColumn("PID");
+	ImGui::TableSetupColumn("ProcessName");
+	ImGui::TableHeadersRow();
+
+	// Table data
+
+	for (int i = 0; i < procInfoInjectShellcode.size(); i++) {
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		click = ImGui::Button(std::to_string(procInfoInjectShellcode[i].pid).c_str());
+		ImGui::TableNextColumn();
+		ImGui::Text("%ws", procInfoInjectShellcode[i].processName.c_str());
+		if (click) {
+			ImGui::EndTable();
+			ImGui::End();
+			return procInfoInjectShellcode[i].pid;
 		}
 	}
 
