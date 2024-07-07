@@ -7,7 +7,8 @@
 
 namespace MainWindow {
 	inline Injector injector;
-	inline std::vector<ProcessInfo> procInfo;
+	inline std::vector<ProcessInfo> procInfoList;
+	inline std::vector<ProcessInfo> procInfoInject;
 
 
 	inline bool bWindowOpen = true;
@@ -19,11 +20,18 @@ namespace MainWindow {
 	inline bool bContextSc = false;
 	inline bool bList = false;
 	inline bool bIninject = false;
-	inline bool choosePID = false;
+	
+	inline bool chooseDllPID = false;
+	inline bool chooseShellcodePID = false;
+
+	inline DWORD gDllPID = 0;
+	inline DWORD gShellcodePID = 0;
 
 	VOID InitWindow();
 	VOID Dispatcher();
 
+	//modName: DLL/Shellcode
+	//VOID Inject(std::string modName, const char Title[], std::function<void(DWORD)>injectMenthod);
 	VOID InjectDLL(const char Title[], std::function<void(DWORD)>injectMenthod);
 	VOID InjectShellcode(const char Title[], std::function<void(std::string, DWORD)>injectMenthod);
 	VOID RemoteDLL();

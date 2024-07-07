@@ -332,7 +332,7 @@ void Injector::apcInject(DWORD pid) {
     }
 
     HMODULE Ntdll = LoadLibraryA("kernel32.dll");
-    if (Ntdll == INVALID_HANDLE_VALUE) {
+    if (Ntdll == INVALID_HANDLE_VALUE || Ntdll == NULL) {
         Error::ErrorMsgBox(L"Failed Loadlibrary kernel32");
         VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
         CloseHandle(hProcess);
@@ -400,7 +400,10 @@ void Injector::apcInject(DWORD pid) {
     CloseHandle(hProcess);
 }
 
+/*                  APC Dispatch Injection                  */
+void Injector::fiberInject(DWORD pid) {
 
+}
 
 /*                  List Injectable Process                  */
 std::vector<ProcessInfo> Injector::injectList() {

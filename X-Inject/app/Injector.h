@@ -46,6 +46,7 @@ public:
 	void remoteThreadInject(DWORD pid);
 	void reflectInject(DWORD pid);
 	void apcInject(DWORD pid);
+	void fiberInject(DWORD pid);
 
 	std::vector<ProcessInfo> injectList();
 
