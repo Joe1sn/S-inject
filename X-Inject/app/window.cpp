@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <thread>
+#include <wininet.h>
 
 VOID MainWindow::InitWindow() {
 #ifdef _WIN64
@@ -22,6 +23,7 @@ VOID MainWindow::InitWindow() {
 	ImGui::Checkbox("Remote Thread DLL Inject", &MainWindow::bRemoteThreadDll);
 	ImGui::Checkbox("Reflect DLL Inject", &MainWindow::bRefelectDll);
 	ImGui::Checkbox("APC DLL Inject", &MainWindow::bApcDll);
+	ImGui::Checkbox("Online DLL Inject", &MainWindow::bNetDll);
 	ImGui::Checkbox("Remote Shellcode Inject", &MainWindow::bInjectSc);
 	ImGui::Checkbox("APC Shellcode Inject", &MainWindow::bApcSc);
 	ImGui::Checkbox("Context Shellcode Inject", &MainWindow::bContextSc);
@@ -39,6 +41,9 @@ VOID MainWindow::Dispatcher() {
 	}
 	if (MainWindow::bApcDll) {
 		MainWindow::ApcDLL();
+	}
+	if (MainWindow::bNetDll) {
+		MainWindow::NetDLL();
 	}
 
 	if (MainWindow::bInjectSc) {
@@ -79,6 +84,15 @@ VOID MainWindow::Dispatcher() {
 		gShellcodePID = 0;
 		if (!procInfoInjectShellcode.empty())
 			procInfoInjectShellcode.clear();
+	}
+
+	if (MainWindow::choosenNetPID) {
+		gNetPID = GetNetPID();
+	}
+	else if (!MainWindow::choosenNetPID) {
+		gNetPID = 0;
+		if (!procInfoInjectNet.empty())
+			procInfoInjectNet.clear();
 	}
 }
 
@@ -128,6 +142,39 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)>injectM
 	ImGui::End();
 
 }
+
+VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD,std::string)>injectMenthod) {
+	OPENFILENAMEA ofn;
+	static char url[0x1000] = { 0 };
+	static int PID = 0;
+
+	bool inject = false;
+
+	ImGui::Begin(Title, nullptr, ImGuiWindowFlags_NoCollapse);
+
+	ImGui::InputText("URL", url, IM_ARRAYSIZE(url));
+
+	ImGui::InputInt("PID", &PID);
+	ImGui::SameLine();
+	ImGui::Checkbox("Choose Process", &MainWindow::choosenNetPID);
+	inject = ImGui::Button("Inject");
+
+	if (MainWindow::choosenNetPID) {
+		PID = gNetPID;
+		gNetPID = 0;
+		if (PID != 0)
+			MainWindow::choosenNetPID = false;
+	}
+	if (inject && PID != 0) {
+		std::string temp = url;
+		if (temp.size() != 0) {
+			injectMenthod(PID, url);
+		}
+	}
+	ImGui::End();
+
+}
+
 
 VOID MainWindow::InjectShellcode(const char Title[], std::function<void(std::string, DWORD)>injectMenthod) {
 	static char Shellcode[0x1000] = { 0 };
@@ -180,6 +227,13 @@ VOID MainWindow::ApcDLL() {
 	MainWindow::InjectDLL("APC DLL Inject", func);
 }
 
+VOID MainWindow::NetDLL() {
+	auto func = [&](DWORD x, std::string dllContent) {
+		injector.internetInject(x, dllContent);
+	};
+	MainWindow::InjectDLL("Inject From Internet", func);
+}
+
 VOID MainWindow::UnInject() {
 	auto func = [&](DWORD x) {
 		injector.unInject(x);
@@ -212,7 +266,6 @@ VOID MainWindow::ContextShellcode() {
 	};
 	MainWindow::InjectShellcode("Context Shellcode Inject", func);
 }
-//TODO
 
 VOID MainWindow::DllList() {
 	ImGui::Begin("Injectable Process", nullptr, ImGuiWindowFlags_NoCollapse);
@@ -308,3 +361,39 @@ DWORD MainWindow::GetShellcodePID() {
 	ImGui::End();
 	return 0;
 }
+
+
+DWORD MainWindow::GetNetPID() {
+	bool click = false;
+	ImGui::Begin("process id", nullptr, ImGuiWindowFlags_NoCollapse);
+
+	if (procInfoInjectNet.empty())
+		procInfoInjectNet = injector.injectList();
+	ImGui::BeginTable("Table", 2, ImGuiTableFlags_Borders);
+
+	// Table header
+	ImGui::TableSetupColumn("PID");
+	ImGui::TableSetupColumn("ProcessName");
+	ImGui::TableHeadersRow();
+
+	// Table data
+
+	for (int i = 0; i < procInfoInjectNet.size(); i++) {
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		click = ImGui::Button(std::to_string(procInfoInjectNet[i].pid).c_str());
+		ImGui::TableNextColumn();
+		ImGui::Text("%ws", procInfoInjectNet[i].processName.c_str());
+		if (click) {
+			ImGui::EndTable();
+			ImGui::End();
+			return procInfoInjectNet[i].pid;
+		}
+	}
+
+	// End table
+	ImGui::EndTable();
+	ImGui::End();
+	return 0;
+}
+

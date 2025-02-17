@@ -31,12 +31,58 @@
 1. 更好的GUI布局，支持Docking。
   2. 代码整理，优化项目文件结构，尽量贴合我认为（~~知道~~）的现代cpp规范。
   3. 遍历部分使用 `NtQuerySystemInformation`  （虽然会导致快速刷新）
-  
-- **[2024-6-18]** 修复选择进程和遍历进程快速闪烁的问题。修复后需要重新开打功能才能看到新的进程。
 
+- **[2024-6-18]** 修复选择进程和遍历进程快速闪烁的问题。修复后需要重新开打功能才能看到新的进程。
 - **[2024-7-7]** 优化一个进程选择Bug，详细见 [issues 2](https://github.com/Joe1sn/S-inject/issues/2)
+- **[2025-2-17]**
+
+1. 新增远程URL加载DLL
+2. 由于 [issues 4](https://github.com/Joe1sn/S-inject/issues/4)等的反应，使用参数快速完成注入
 
 # New Feature
+
+- [2025-2-17] V2.2更新
+
+  1. 新增远程URL进行Get请求加载DLL，可以实现dll文件不落地加载dll，由于依赖反射式注入，所以dll的格式应该与反射式注入的相同，格式为：https://github.com/stephenfewer/ReflectiveDLLInjection
+
+     ![image-20250217173155506](D:\Github\S-inject\README.assets\image-20250217173155506.png)
+
+  2. 添加参数可以快速完成注入
+
+     `-method`：使用的注入方法
+
+     - `rmtdll`：远程线程注入DLL
+     - `refdll`：反射式注入DLL
+     - `apcdll`：APC队列注入DLL
+
+     - `net`：从网络加载DLL注入DLL
+     - `rmtsc`：远程线程注入Shellcode
+     - `apcsc`：APC队列注入Shellcode
+     - `ctxsc`：上下文注入Shellcode
+
+     `-proc`：注入进程的名字
+
+     `-path`：dll的文件路径、dll的url（http开头）、base64后的shellcode
+
+     `-pid`：进程`PID`
+
+     用例
+
+     ```
+     .\S-Inject_x86_gui.exe -method net -proc "x32dbg" -path "http://127.0.0.1/reflective_x86.dll"
+     ```
+
+     ![image-20250217193111847](D:\Github\S-inject\README.assets\image-20250217193111847.png)
+
+     可以据此编写对应的bat脚本来实现自动注入，如这里的`test.bat`
+
+     ```
+     @echo off
+     D:\Github\S-inject\Release\S-Inject.exe -method net -proc "x32dbg" -path "http://127.0.0.1/reflective_x86.dll"
+     pause
+     ```
+
+     这样双击该bat脚本即可向`x32dbg`的进程使用`网络加载`注入url为`http://127.0.0.1/reflective_x86.dll`的dll
 
 - [2024-6-6] V2.1更新
 
@@ -82,7 +128,7 @@
 
 1.x版本（无图像化界面）使用说明见：`oldREADME.md`
 
-![image-20240606225058387](./README.assets/image-20240606225058387.png)
+![image-20250217193433513](D:\Github\S-inject\README.assets\image-20250217193433513.png)
 
 直接勾选对应功能，选择DLL/Shellcode，和对应进程的PID
 

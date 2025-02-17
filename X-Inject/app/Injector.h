@@ -46,7 +46,9 @@ public:
 	void remoteThreadInject(DWORD pid);
 	void reflectInject(DWORD pid);
 	void apcInject(DWORD pid);
-	void fiberInject(DWORD pid);
+	void fiberInject(DWORD pid);//TODO
+	void internetInject(DWORD pid, std::string url);
+	
 
 	std::vector<ProcessInfo> injectList();
 
@@ -56,12 +58,14 @@ public:
 
 	void dllPathSetter(std::string dll_path);
 	void callBackSetter(CallbackFunction InjecMethod);
+	DWORD getPidByName(LPCSTR procName);
 
 private:
 	bool bFileExists(std::string filePath);
 	bool bPreInjectCheck(DWORD pid);
 	bool bInjectable(DWORD pid);
 	bool bGetModule(DWORD pid, MODULEENTRY32& result);
+	void atomReflectInject(DWORD pid, std::string url ="");
 
 	DWORD dwGetOffset(HANDLE Image, CHAR* FuncName);
 	DWORD Rva2Offset(DWORD dwRva, UINT_PTR uiBaseAddress);

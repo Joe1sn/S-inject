@@ -2,6 +2,7 @@
 
 #include "global.h"
 #include "app/window.h"
+#include "app/utils/helper.hpp"
 
 
 #include "./ext/imgui.h"
@@ -11,6 +12,8 @@
 
 #include <d3d11.h>
 #include <tchar.h>
+#include <windows.h>
+#include <iostream>
 
 // Data
 static ID3D11Device* g_pd3dDevice = nullptr;
@@ -27,133 +30,238 @@ void CreateRenderTarget();
 void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+
 // Main code
-int __stdcall WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmdShow)
+int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmdShow)
 {
-    // Create application window
-    //ImGui_ImplWin32_EnableDpiAwareness();
-    WNDCLASSEXW wc = { };
-    wc.cbSize = sizeof(WNDCLASSEX);
-    wc.lpfnWndProc = WndProc;
-    wc.lpszClassName = L"X-inject";
-    wc.hInstance = instance;
-    wc.style = CS_HREDRAW | CS_VREDRAW;
+    bool needGui = true;
+    std::string commandLine = lpCmd;
+    if (!commandLine.empty())
+        needGui = false;
 
-    ::RegisterClassExW(&wc);
-    //HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Windows ", WS_OVERLAPPEDWINDOW, 100, 100, 1280, 800, nullptr, nullptr, wc.hInstance, nullptr);
-    HWND hwnd = CreateWindowExW(0, L"X-inject" , L"X-inject",
-        WS_POPUP | WS_EX_TRANSPARENT, CW_USEDEFAULT, CW_USEDEFAULT,
-        GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), NULL, NULL, instance, NULL
-    );
-    SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-    SetLayeredWindowAttributes(hwnd, RGB(255, 255, 255), 255, LWA_COLORKEY);
-    SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
-
-    // Initialize Direct3D
-    if (!CreateDeviceD3D(hwnd))
-    {
-        CleanupDeviceD3D();
-        ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-        return 1;
-    }
-
-    // Show the window
-    ::ShowWindow(hwnd, SW_SHOWDEFAULT);
-    ::UpdateWindow(hwnd);
-
-    // Setup context
-    //IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
-    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
-
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
-
-    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-    ImGuiStyle& style = ImGui::GetStyle();
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-        style.WindowRounding = 0.0f;
-        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-    }
-
-    // Setup Platform/Renderer backends
-    ImGui_ImplWin32_Init(hwnd);
-    ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
-
-    // Load Fonts
-    io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\Deng.ttf", 18, nullptr, io.Fonts->GetGlyphRangesChineseFull());
-
-
-
-
-    // Main loop
-    bool done = false;
-    while (!done)
-    {
-        // Poll and handle messages (inputs, window resize, etc.)
-        // See the WndProc() function below for our to dispatch events to the Win32 backend.
-        MSG msg;
-        while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
+    if (!needGui) { //不需要GUI界面
+        //处理命令行
+        std::vector<std::string>words = {};
+        std::string word = "";
+        
+        bool intoRef = false;
+        for (auto c: commandLine)   //切割参数
         {
-            ::TranslateMessage(&msg);
-            ::DispatchMessage(&msg);
-            if (msg.message == WM_QUIT)
-                done = true;
+            if (c == ' ') {
+                if (!intoRef) {
+                    if (!word.empty()) {
+                        words.push_back(word);
+                        word.clear();
+                    }
+                }
+                else {
+                    word.append(1, c);
+                }
+
+                continue;
+            }
+            else if (c == '\n') {
+                if (!word.empty()) {
+                    words.push_back(word);
+                    word.clear();
+                }
+                break;
+            }
+            else if (c == '"') {
+                intoRef = !intoRef;
+                
+            }
+            else
+                word.append(1, c);
         }
-        if (done)
-            break;
+        words.push_back(word);
+        word.clear();
 
-        // Start the Dear ImGui frame
-        ImGui_ImplDX11_NewFrame();
-        ImGui_ImplWin32_NewFrame();
-        ImGui::NewFrame();
+        std::string method = "";
+        std::string path = "";
+        DWORD pid = 0;
+        std::string procName = "";
+        auto injector = Injector();
+
+        for (size_t i = 0; i < words.size(); i++) {  //解析参数
+            if (words[i].starts_with("-method")) {
+                method = words[++i];
+            }
+            else if (words[i].starts_with("-path")) {
+                path = words[++i];
+            }
+            else if (words[i].starts_with("-pid")) {
+                pid = std::stoul(words[++i]);
+            }
+            else if (words[i].starts_with("-proc")) {
+                procName = words[++i];
+            }
+        }
+        
+        
+        //std::string report = "method: " + method;
+        //report += "\npath: " + path;
+        //report += "\nproc: " + procName;
+        //report += "\npid:  " + std::to_string(pid);
+        //MessageBoxA(NULL, report.c_str(), "debug", MB_OK);
+
+        if (!procName.empty())
+            pid = injector.getPidByName(procName.c_str());
+        if (pid == 0) {
+            MessageBoxA(NULL, "No Such Process Can be injected", "error", MB_OK | MB_ICONERROR);
+            return 0;
+        }
+
+        if (method == "net")
+            injector.internetInject(pid, path);
+        else if (method == "rmtdll") {
+            injector.dllPathSetter(path);
+            injector.remoteThreadInject(pid);
+        }
+        else if (method == "refdll") {
+            injector.reflectInject(pid);
+            injector.remoteThreadInject(pid);
+        }
+        else if (method == "apcdll") {
+            injector.apcInject(pid);
+            injector.remoteThreadInject(pid);
+        }
+        else if (method == "rmtsc")
+            injector.shellcodeInject(path, pid);
+        else if (method == "apcsc")
+            injector.apcShellcodeInject(path, pid);
+        else if (method == "ctxsc")
+            injector.contextShellcodeInject(path, pid);
+        else
+            MessageBoxA(NULL, "No Such Method", "error", MB_OK | MB_ICONERROR);
 
 
-        ////////////  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS
+    }
+    else {          //需要GUI界面
+        WNDCLASSEXW wc = { };
+        wc.cbSize = sizeof(WNDCLASSEX);
+        wc.lpfnWndProc = WndProc;
+        wc.lpszClassName = L"X-inject";
+        //wc.hInstance = instance;
 
-        MainWindow::InitWindow();
-        MainWindow::Dispatcher();
+        wc.style = CS_HREDRAW | CS_VREDRAW;
 
-        ////////////  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS
+        ::RegisterClassExW(&wc);
+        HWND hwnd = CreateWindowExW(0, L"X-inject", L"X-inject",
+            WS_POPUP | WS_EX_TRANSPARENT, CW_USEDEFAULT, CW_USEDEFAULT,
+            GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), NULL, NULL, NULL, NULL
+        );
+        SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+        SetLayeredWindowAttributes(hwnd, RGB(255, 255, 255), 255, LWA_COLORKEY);
+        SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
+        // Initialize Direct3D
+        if (!CreateDeviceD3D(hwnd))
+        {
+            CleanupDeviceD3D();
+            ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
+            return 1;
+        }
 
+        // Show the window
+        ::ShowWindow(hwnd, SW_SHOWDEFAULT);
+        ::UpdateWindow(hwnd);
 
-        // Rendering
-        ImGui::Render();
-        // Rendering Method
-        const float clear_color_with_alpha[4] = { g_status::clear_color.x * g_status::clear_color.w, g_status::clear_color.y * g_status::clear_color.w,g_status::clear_color.z * g_status::clear_color.w, g_status::clear_color.w };
-        g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
-        g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
-        ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+        // Setup context
+        //IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+        ImGuiIO& io = ImGui::GetIO(); (void)io;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
 
-        // Update and Render additional Platform Windows
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+        //ImGui::StyleColorsLight();
+
+        // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+        ImGuiStyle& style = ImGui::GetStyle();
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
-            ImGui::UpdatePlatformWindows();
-            ImGui::RenderPlatformWindowsDefault();
+            style.WindowRounding = 0.0f;
+            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
         }
 
-        // Present
-        HRESULT hr = g_pSwapChain->Present(1, 0);   // Present with vsync
-        //HRESULT hr = g_pSwapChain->Present(0, 0); // Present without vsync
-        g_SwapChainOccluded = (hr == DXGI_STATUS_OCCLUDED);
+        // Setup Platform/Renderer backends
+        ImGui_ImplWin32_Init(hwnd);
+        ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+
+        // Load Fonts
+        io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\Deng.ttf", 18, nullptr, io.Fonts->GetGlyphRangesChineseFull());
+
+
+
+
+        // Main loop
+        bool done = false;
+        while (!done)
+        {
+            // Poll and handle messages (inputs, window resize, etc.)
+            // See the WndProc() function below for our to dispatch events to the Win32 backend.
+            MSG msg;
+            while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
+            {
+                ::TranslateMessage(&msg);
+                ::DispatchMessage(&msg);
+                if (msg.message == WM_QUIT)
+                    done = true;
+            }
+            if (done)
+                break;
+
+            // Start the Dear ImGui frame
+            ImGui_ImplDX11_NewFrame();
+            ImGui_ImplWin32_NewFrame();
+            ImGui::NewFrame();
+
+
+            ////////////  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS
+
+            MainWindow::InitWindow();
+            MainWindow::Dispatcher();
+
+            ////////////  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS
+
+
+
+            // Rendering
+            ImGui::Render();
+            // Rendering Method
+            const float clear_color_with_alpha[4] = { g_status::clear_color.x * g_status::clear_color.w, g_status::clear_color.y * g_status::clear_color.w,g_status::clear_color.z * g_status::clear_color.w, g_status::clear_color.w };
+            g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
+            g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
+            ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+            // Update and Render additional Platform Windows
+            if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+            {
+                ImGui::UpdatePlatformWindows();
+                ImGui::RenderPlatformWindowsDefault();
+            }
+
+            // Present
+            HRESULT hr = g_pSwapChain->Present(1, 0);   // Present with vsync
+            //HRESULT hr = g_pSwapChain->Present(0, 0); // Present without vsync
+            g_SwapChainOccluded = (hr == DXGI_STATUS_OCCLUDED);
+        }
+
+        // Cleanup
+        ImGui_ImplDX11_Shutdown();
+        ImGui_ImplWin32_Shutdown();
+        ImGui::DestroyContext();
+
+        CleanupDeviceD3D();
+        ::DestroyWindow(hwnd);
+        ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
+
     }
-
-    // Cleanup
-    ImGui_ImplDX11_Shutdown();
-    ImGui_ImplWin32_Shutdown();
-    ImGui::DestroyContext();
-
-    CleanupDeviceD3D();
-    ::DestroyWindow(hwnd);
-    ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
-
+   
     return 0;
 }
 
