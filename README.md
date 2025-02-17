@@ -45,7 +45,7 @@
 
   1. 新增远程URL进行Get请求加载DLL，可以实现dll文件不落地加载dll，由于依赖反射式注入，所以dll的格式应该与反射式注入的相同，格式为：https://github.com/stephenfewer/ReflectiveDLLInjection
 
-     ![image-20250217173155506](D:\Github\S-inject\README.assets\image-20250217173155506.png)
+     ![image-20250217173155506](./README.assets/image-20250217173155506.png)
 
   2. 添加参数可以快速完成注入
 
@@ -72,7 +72,7 @@
      .\S-Inject_x86_gui.exe -method net -proc "x32dbg" -path "http://127.0.0.1/reflective_x86.dll"
      ```
 
-     ![image-20250217193111847](D:\Github\S-inject\README.assets\image-20250217193111847.png)
+     ![image-20250217193111847](./README.assets/image-20250217193111847.png)
 
      可以据此编写对应的bat脚本来实现自动注入，如这里的`test.bat`
 
@@ -128,7 +128,7 @@
 
 1.x版本（无图像化界面）使用说明见：`oldREADME.md`
 
-![image-20250217193433513](D:\Github\S-inject\README.assets\image-20250217193433513.png)
+![image-20250217193433513](./README.assets/image-20250217193433513.png)
 
 直接勾选对应功能，选择DLL/Shellcode，和对应进程的PID
 
