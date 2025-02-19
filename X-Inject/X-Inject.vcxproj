@@ -169,6 +169,8 @@
     <ClInclude Include="app\utils\error.hpp" />
     <ClInclude Include="app\utils\helper.hpp" />
     <ClInclude Include="app\utils\query.hpp" />
+    <ClInclude Include="app\utils\spectrum.h" />
+    <ClInclude Include="app\utils\theme.hpp" />
     <ClInclude Include="ext\imconfig.h" />
     <ClInclude Include="ext\imgui.h" />
     <ClInclude Include="ext\imgui_impl_dx11.h" />

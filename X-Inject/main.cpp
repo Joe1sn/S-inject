@@ -3,7 +3,7 @@
 #include "global.h"
 #include "app/window.h"
 #include "app/utils/helper.hpp"
-
+#include "app/utils/theme.hpp"
 
 #include "./ext/imgui.h"
 #include "./ext/imgui_impl_win32.h"
@@ -177,8 +177,9 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
 
         // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-        //ImGui::StyleColorsLight();
+        //ImGui::StyleColorsDark();
+        ImGui::StyleColorsLight();
+        Theme::purpeDragon();
 
         // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
         ImGuiStyle& style = ImGui::GetStyle();

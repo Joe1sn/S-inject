@@ -104,6 +104,12 @@
     <ClInclude Include="app\utils\helper.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="app\utils\theme.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="app\utils\spectrum.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="app\S-Wisper-asm.x64.asm">
