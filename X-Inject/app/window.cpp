@@ -7,6 +7,7 @@
 #include <iostream>
 #include <thread>
 #include <wininet.h>
+#include <string>
 
 VOID MainWindow::InitWindow() {
 #ifdef _WIN64
