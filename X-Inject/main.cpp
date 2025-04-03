@@ -14,6 +14,7 @@
 #include <tchar.h>
 #include <windows.h>
 #include <iostream>
+#include <fstream>
 
 // Data
 static ID3D11Device* g_pd3dDevice = nullptr;
@@ -24,6 +25,7 @@ static UINT                     g_ResizeWidth = 0, g_ResizeHeight = 0;
 static ID3D11RenderTargetView* g_mainRenderTargetView = nullptr;
 
 // Forward declarations of helper functions
+void GenConfigIniFile();
 bool CreateDeviceD3D(HWND hWnd);
 void CleanupDeviceD3D();
 void CreateRenderTarget();
@@ -39,13 +41,12 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
     if (!commandLine.empty())
         needGui = false;
 
-    if (!needGui) { //不需要GUI界面
-        //处理命令行
+    if (!needGui) {
         std::vector<std::string>words = {};
         std::string word = "";
         
         bool intoRef = false;
-        for (auto c: commandLine)   //切割参数
+        for (auto c: commandLine) 
         {
             if (c == ' ') {
                 if (!intoRef) {
@@ -83,7 +84,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
         std::string procName = "";
         auto injector = Injector();
 
-        for (size_t i = 0; i < words.size(); i++) {  //解析参数
+        for (size_t i = 0; i < words.size(); i++) {
             if (words[i].starts_with("-method")) {
                 method = words[++i];
             }
@@ -137,7 +138,8 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
 
 
     }
-    else {          //需要GUI界面
+    else {
+        GenConfigIniFile();
         WNDCLASSEXW wc = { };
         wc.cbSize = sizeof(WNDCLASSEX);
         wc.lpfnWndProc = WndProc;
@@ -267,6 +269,148 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
 }
 
 // Helper functions
+void GenConfigIniFile() {
+    DWORD attrib = GetFileAttributesA("imgui.ini");
+    if (attrib != INVALID_FILE_ATTRIBUTES) {
+        return;
+    }
+    else {
+        std::ofstream file("imgui.ini",std::ios::binary);
+        if (!file.is_open())
+            return;
+        file << "[Window][Debug##Default]\n";
+        file << "Pos=60,60\n";
+        file << "Size=400,400\n";
+        file << "Collapsed=0\n";
+
+        file << "[Window][Hello, world!]\n";
+        file << "Pos=1038,449\n";
+        file << "Size=494,422\n";
+        file << "Collapsed=0\n";
+
+        file << "[Window][Another Window]\n";
+        file << "Pos=701,395\n";
+        file << "Size=404,360\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x00000002,1\n";
+
+        file << "[Window][锟斤拷锟絔\n";
+        file << "Pos=631,519\n";
+        file << "Size=583,286\n";
+        file << "Collapsed=0\n";
+
+        file << "[Window][浣犲ソ]\n";
+        file << "Pos=701,395\n";
+        file << "Size=404,360\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x00000002,0\n";
+
+        file << "[Window][S-inject GUI Version]\n";
+        file << "Pos=639,321\n";
+        file << "Size=543,339\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x00000005,0\n";
+
+        file << "[Window][Remote DLL Inject]\n";
+        file << "Pos=592,734\n";
+        file << "Size=774,120\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x0000000A,3\n";
+
+        file << "[Window][Reflect DLL Inject]\n";
+        file << "Pos=592,734\n";
+        file << "Size=774,120\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x0000000A,2\n";
+
+        file << "[Window][APC DLL Inject]\n";
+        file << "Pos=592,734\n";
+        file << "Size=774,120\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x0000000A,1\n";
+
+        file << "[Window][Remote Shellcode Inject]\n";
+        file << "Pos=592,734\n";
+        file << "Size=774,120\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x0000000A,1\n";
+
+        file << "[Window][APC Shellcode Inject]\n";
+        file << "Pos=592,734\n";
+        file << "Size=774,120\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x0000000A,0\n";
+
+        file << "[Window][Context Shellcode Inject]\n";
+        file << "Pos=592,708\n";
+        file << "Size=774,146\n";
+        file << "Collapsed=0\n";
+
+        file << "[Window][UnInject DLL]\n";
+        file << "Pos=592,322\n";
+        file << "Size=365,384\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x00000005,1\n";
+
+        file << "[Window][Injectable Process]\n";
+        file << "Pos=959,322\n";
+        file << "Size=407,384\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x00000003,0\n";
+
+        file << "[Window][S-inject x64]\n";
+        file << "Pos=592,322\n";
+        file << "Size=389,410\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x00000005,0\n";
+
+        file << "[Window][pid]\n";
+        file << "ViewportPos=60,60\n";
+        file << "ViewportId=0x5550C4ED\n";
+        file << "Size=635,1034\n";
+        file << "Collapsed=0\n";
+
+        file << "[Window][process id]\n";
+        file << "Pos=983,322\n";
+        file << "Size=383,410\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x00000006,0\n";
+
+        file << "[Window][S-inject x32]\n";
+        file << "Pos=375,464\n";
+        file << "Size=404,370\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x00000005,0\n";
+
+        file << "[Window][Inject From Internet]\n";
+        file << "Pos=592,734\n";
+        file << "Size=774,120\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x0000000A,0\n";
+
+        file << "[Window][shellcode process id]\n";
+        file << "Pos=981,322\n";
+        file << "Size=385,410\n";
+        file << "Collapsed=0\n";
+        file << "DockId=0x00000008,0\n";
+
+        file << "[Docking][Data]\n";
+        file << "DockNode          ID=0x00000002 Pos=701,395 Size=404,360 Selected=0x96791837\n";
+        file << "DockNode          ID=0x00000007 Pos=592,322 Size=774,532 Split=Y\n";
+        file << "DockNode        ID=0x00000009 Parent=0x00000007 SizeRef=774,410 Split=X\n";
+        file << "DockNode      ID=0x00000001 Parent=0x00000009 SizeRef=415,177 Split=X\n";
+        file << "DockNode    ID=0x00000004 Parent=0x00000001 SizeRef=232,533 Split=X Selected=0xD3F790C7\n";
+        file << "DockNode  ID=0x00000005 Parent=0x00000004 SizeRef=387,410 Selected=0xD3F790C7\n";
+        file << "DockNode  ID=0x00000008 Parent=0x00000004 SizeRef=385,410 Selected=0xB3407F9B\n";
+        file << "DockNode    ID=0x00000006 Parent=0x00000001 SizeRef=229,533 Selected=0x8AC5C89D\n";
+        file << "DockNode      ID=0x00000003 Parent=0x00000009 SizeRef=462,177 Selected=0x8E2C745A\n";
+        file << "DockNode        ID=0x0000000A Parent=0x00000007 SizeRef=774,120 Selected=0x7F6CE61D\n";
+
+
+        file.close();
+    }
+}
+
 bool CreateDeviceD3D(HWND hWnd)
 {
     // Setup swap chain
