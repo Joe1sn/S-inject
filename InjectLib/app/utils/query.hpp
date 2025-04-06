@@ -1,7 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include <winternl.h>
-// ���� NtQuerySystemInformation ����ָ������
+// NtQuerySystemInformation 
 typedef enum _KWAIT_REASON {
     Executive,
     FreePage,
