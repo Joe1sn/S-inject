@@ -16,13 +16,13 @@
 #include <string>
 
 
-extern "C" INJECTLIB_API bool rmtdll(std::string dllPath, DWORD pid);
-extern "C" INJECTLIB_API bool refdll(std::string dllPath, DWORD pid);
-extern "C" INJECTLIB_API bool apcdll(std::string dllPath, DWORD pid);
-extern "C" INJECTLIB_API bool net(std::string dllPath, DWORD pid);
-extern "C" INJECTLIB_API bool rmtsc(std::string shellcode, DWORD pid);
-extern "C" INJECTLIB_API bool apcsc(std::string shellcode, DWORD pid);
-extern "C" INJECTLIB_API bool ctxsc(std::string shellcode, DWORD pid);
+extern "C" INJECTLIB_API bool rmtdll(const char* proc_name_cstr, DWORD pid);
+extern "C" INJECTLIB_API bool refdll(const char* proc_name_cstr, DWORD pid);
+extern "C" INJECTLIB_API bool apcdll(const char* proc_name_cstr, DWORD pid);
+extern "C" INJECTLIB_API bool net(const char* proc_name_cstr, DWORD pid);
+extern "C" INJECTLIB_API bool rmtsc(const char* shellcode, DWORD pid);
+extern "C" INJECTLIB_API bool apcsc(const char* shellcode, DWORD pid);
+extern "C" INJECTLIB_API bool ctxsc(const char* shellcode, DWORD pid);
 extern "C" INJECTLIB_API DWORD getPID(const char* proc_name_cstr);
 
 /*

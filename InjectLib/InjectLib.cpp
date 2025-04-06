@@ -6,7 +6,7 @@
 #include "InjectLib.h"
 
 //远程线程注入DLL
-INJECTLIB_API bool rmtdll(std::string dllPath, DWORD pid) {
+INJECTLIB_API bool rmtdll(const char* dllPath, DWORD pid) {
     if (pid == 0)
         return false;
     auto injector = Injector(dllPath);
@@ -15,7 +15,7 @@ INJECTLIB_API bool rmtdll(std::string dllPath, DWORD pid) {
 }
 
 //反射式注入DLL
-INJECTLIB_API bool refdll(std::string dllPath, DWORD pid) {
+INJECTLIB_API bool refdll(const char* dllPath, DWORD pid) {
     if (pid == 0)
         return false;
     auto injector = Injector(dllPath);
@@ -23,7 +23,7 @@ INJECTLIB_API bool refdll(std::string dllPath, DWORD pid) {
     return true;
 }
 //APC队列注入DLL
-INJECTLIB_API bool apcdll(std::string dllPath, DWORD pid) {
+INJECTLIB_API bool apcdll(const char* dllPath, DWORD pid) {
     if (pid == 0)
         return false;
     auto injector = Injector(dllPath);
@@ -31,7 +31,7 @@ INJECTLIB_API bool apcdll(std::string dllPath, DWORD pid) {
     return true;
 }
 //从网络加载DLL注入DLL
-INJECTLIB_API bool net(std::string dllPath, DWORD pid) {
+INJECTLIB_API bool net(const char* dllPath, DWORD pid) {
     if (pid == 0)
         return false;
     auto injector = Injector(dllPath);
@@ -39,7 +39,7 @@ INJECTLIB_API bool net(std::string dllPath, DWORD pid) {
     return true;
 }
 //远程线程注入Shellcode
-INJECTLIB_API bool rmtsc(std::string shellcode, DWORD pid) {
+INJECTLIB_API bool rmtsc(const char* shellcode, DWORD pid) {
     if (pid == 0)
         return false;
     auto injector = Injector();
@@ -47,7 +47,7 @@ INJECTLIB_API bool rmtsc(std::string shellcode, DWORD pid) {
     return true;
 }
 //APC队列注入Shellcode
-INJECTLIB_API bool apcsc(std::string shellcode, DWORD pid) {
+INJECTLIB_API bool apcsc(const char* shellcode, DWORD pid) {
     if (pid == 0)
         return false;
     auto injector = Injector();
@@ -55,7 +55,7 @@ INJECTLIB_API bool apcsc(std::string shellcode, DWORD pid) {
     return true;
 }
 //上下文注入Shellcode
-INJECTLIB_API bool ctxsc(std::string shellcode, DWORD pid) {
+INJECTLIB_API bool ctxsc(const char* shellcode, DWORD pid) {
     if (pid == 0)
         return false;
     auto injector = Injector();

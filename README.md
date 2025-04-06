@@ -19,10 +19,7 @@
 
 # Update
 
-- **[2025-4-6]** **重要：** 新创建分支(branch)：mcp，今后的MCP server和lib(dll)版本在这个分支下
-=======
-- **[2025-4-6]** **重要：** 新创建分支(branch)：**mcp**，今后的MCP server和lib(dll)版本在这个分支下
-
+- **[2025-4-6]** **重要：** 新创建分支(branch)：mcp，相关的DLL在这里维护。MCP模型上下文协议自动完成注入项目地址：https://github.com/Joe1sn/inject-mcp
 - **[2025-4-3]** 使用gui界面时自动生成`imgui.ini`，优化界面排版
 
 - **[2025-2-19]** 变化主题
