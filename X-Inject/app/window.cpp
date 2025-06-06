@@ -1,5 +1,7 @@
+/*
+* Imgui窗口
+*/
 #include "window.h"
-
 
 #include "../ext/imgui.h"
 #include "../global.h"
@@ -97,6 +99,7 @@ VOID MainWindow::Dispatcher() {
 	}
 }
 
+//注入dll的窗口
 VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)>injectMenthod) {
 	OPENFILENAMEA ofn;
 	static char filePath[0x1000] = { 0 };
@@ -108,7 +111,7 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)>injectM
 
 	ImGui::Begin(Title, nullptr, ImGuiWindowFlags_NoCollapse);
 
-	ImGui::InputText("FilePath", filePath, IM_ARRAYSIZE(filePath));
+	ImGui::InputText("FilePath", filePath, IM_ARRAYSIZE(filePath));	//Imgui得到参数
 	ImGui::SameLine();
 	chooseFile = ImGui::Button("Choose File");
 	ImGui::InputInt("PID", &PID);
@@ -116,7 +119,7 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)>injectM
 	ImGui::Checkbox("Choose Process", &MainWindow::chooseDllPID);
 	inject = ImGui::Button("Inject");
 
-	if (chooseFile) {
+	if (chooseFile) {	//选择dll文件
 		ZeroMemory(&ofn, sizeof(ofn));
 		ofn.lStructSize = sizeof(ofn);
 		ofn.hwndOwner = NULL;
@@ -127,7 +130,7 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)>injectM
 		ofn.lpstrDefExt = "";
 		if (GetOpenFileNameA(&ofn)) {}
 	}
-	if (MainWindow::chooseDllPID) {
+	if (MainWindow::chooseDllPID) {	//获得pid
 		PID = gDllPID;
 		gDllPID = 0;
 		if (PID != 0)
@@ -144,6 +147,7 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)>injectM
 
 }
 
+//注入dll的窗口，自定义注入方法
 VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD,std::string)>injectMenthod) {
 	OPENFILENAMEA ofn;
 	static char url[0x1000] = { 0 };
@@ -176,7 +180,7 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD,std::str
 
 }
 
-
+//注入shellcode
 VOID MainWindow::InjectShellcode(const char Title[], std::function<void(std::string, DWORD)>injectMenthod) {
 	static char Shellcode[0x1000] = { 0 };
 	static int scPID = 0;

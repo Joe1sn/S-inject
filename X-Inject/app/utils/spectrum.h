@@ -1,3 +1,6 @@
+/*
+* 主题文件
+*/
 #pragma once
 #if !defined(SPECTRUM_USE_LIGHT_THEME) && !defined(SPECTRUM_USE_DARK_THEME)
 #define SPECTRUM_USE_LIGHT_THEME

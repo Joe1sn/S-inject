@@ -10,11 +10,11 @@
 #include <wininet.h>
 
 Injector::Injector(std::string dll_path) {
-    this->DllPath = dll_path;
-    this->callback_ = nullptr;
-    this->exist = this->bFileExists(this->DllPath);
+    this->DllPath = dll_path;   //dll文件的路径
+    this->callback_ = nullptr;  //列出可注入进程的回调函数
+    this->exist = this->bFileExists(this->DllPath); //判断文件是否存在
     
-    //constexpr const std::wstring = Crypto::xorstr()
+    //检测参数   
     if (!exist) {
         Error::ErrorMsgBox(L"File Not Exist");
         return;
@@ -34,7 +34,7 @@ Injector::Injector(std::string dll_path) {
     }
 }
 
-Injector::Injector() {
+Injector::Injector() {  //默认构造函数
     this->DllPath = "";
     this->exist = FALSE;
     this->callback_ = nullptr;
@@ -172,7 +172,6 @@ void Injector::unInject(DWORD pid) {
         return;
     }
 
-    //HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, hFreeLib, result.modBaseAddr, 0, NULL);
     HANDLE hThread = NULL;
 #ifdef _WIN64
     NTSTATUS status = Sw3NtCreateThreadEx(&hThread, 0x1FFFFF, NULL, hProcess, (LPTHREAD_START_ROUTINE)hFreeLib, result.modBaseAddr, FALSE, NULL, NULL, NULL, NULL);
@@ -604,7 +603,6 @@ void Injector::contextShellcodeInject(std::string basedsc, DWORD pid) {
         }
         if (processInfo->NextEntryOffset == 0)
             break;
-        //processInfo = (PSYSTEM_PROCESS_INFORMATION)((BYTE*)processInfo + processInfo->NextEntryOffset);
         processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(
             reinterpret_cast<PBYTE>(processInfo) + processInfo->NextEntryOffset
             );
@@ -890,56 +888,36 @@ DWORD Injector::dwGetOffset(HANDLE Image, CHAR* FuncName) {
     DWORD dwCounter = 0;
 
     uiBaseAddress = (UINT_PTR)Image;
-    // get the File Offset of the modules NT Header
     uiExportDir = uiBaseAddress + ((PIMAGE_DOS_HEADER)uiBaseAddress)->e_lfanew;
-    // uiNameArray = the address of the modules export directory entry
     uiNameArray = (UINT_PTR) & ((PIMAGE_NT_HEADERS)uiExportDir)->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT];
 
-    // get the File Offset of the export directory
     uiExportDir = uiBaseAddress + this->Rva2Offset(((PIMAGE_DATA_DIRECTORY)uiNameArray)->VirtualAddress, uiBaseAddress);
-
-    // get the File Offset for the array of name pointers
     uiNameArray = uiBaseAddress + this->Rva2Offset(((PIMAGE_EXPORT_DIRECTORY)uiExportDir)->AddressOfNames, uiBaseAddress);
-
-    // get the File Offset for the array of addresses
     uiAddressArray = uiBaseAddress + this->Rva2Offset(((PIMAGE_EXPORT_DIRECTORY)uiExportDir)->AddressOfFunctions, uiBaseAddress);
-
-    // get the File Offset for the array of name ordinals
     uiNameOrdinals = uiBaseAddress + this->Rva2Offset(((PIMAGE_EXPORT_DIRECTORY)uiExportDir)->AddressOfNameOrdinals, uiBaseAddress);
 
-    // get a counter for the number of exported functions...
     dwCounter = ((PIMAGE_EXPORT_DIRECTORY)uiExportDir)->NumberOfNames;
-
-    // loop through all the exported functions to find the ReflectiveLoader
     while (dwCounter--)
     {
         char* cpExportedFunctionName = (char*)(uiBaseAddress + this->Rva2Offset(DEREF_32(uiNameArray), uiBaseAddress));
 
         //这里就开始比较导出函数的函数名称
-        //if (strstr(cpExportedFunctionName, "ReflectiveLoader") != NULL)
         if (strstr(cpExportedFunctionName, FuncName) != NULL)
         {
-            // get the File Offset for the array of addresses
             uiAddressArray = uiBaseAddress + this->Rva2Offset(((PIMAGE_EXPORT_DIRECTORY)uiExportDir)->AddressOfFunctions, uiBaseAddress);
-
-            // use the functions name ordinal as an index into the array of name pointers
             uiAddressArray += (DEREF_16(uiNameOrdinals) * sizeof(DWORD));
-
-            // return the File Offset to the ReflectiveLoader() functions code...
             return this->Rva2Offset(DEREF_32(uiAddressArray), uiBaseAddress);
         }
-        // get the next exported function name
         uiNameArray += sizeof(DWORD);
-
-        // get the next exported function name ordinal
         uiNameOrdinals += sizeof(WORD);
     }
-
     return 0;
 }
 
 DWORD Injector::Rva2Offset(DWORD dwRva, UINT_PTR uiBaseAddress)
 {
+    // 本段代码参考了著名反射式DLL注入项目
+    // https://github.com/stephenfewer/ReflectiveDLLInjection
     WORD wIndex = 0;
     PIMAGE_SECTION_HEADER pSectionHeader = NULL;
     PIMAGE_NT_HEADERS pNtHeaders = NULL;

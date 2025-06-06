@@ -41,15 +41,15 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
     if (!commandLine.empty())
         needGui = false;
 
-    if (!needGui) {
+    if (!needGui) { //不需要GUI界面
         std::vector<std::string>words = {};
         std::string word = "";
         
-        bool intoRef = false;
-        for (auto c: commandLine) 
+        bool intoRef = false;   //是否处于 `"` 中
+        for (auto c: commandLine)   //对命令行分词处理，得到参数
         {
-            if (c == ' ') {
-                if (!intoRef) {
+            if (c == ' ') { //下一个参数
+                if (!intoRef) { // 不在`"`中，开始的到下一个参数
                     if (!word.empty()) {
                         words.push_back(word);
                         word.clear();
@@ -58,17 +58,16 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
                 else {
                     word.append(1, c);
                 }
-
                 continue;
             }
-            else if (c == '\n') {
+            else if (c == '\n') {   //命令行结束
                 if (!word.empty()) {
                     words.push_back(word);
                     word.clear();
                 }
                 break;
             }
-            else if (c == '"') {
+            else if (c == '"') {    //设置`"`状态
                 intoRef = !intoRef;
                 
             }
@@ -78,13 +77,13 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
         words.push_back(word);
         word.clear();
 
-        std::string method = "";
-        std::string path = "";
-        DWORD pid = 0;
-        std::string procName = "";
-        auto injector = Injector();
+        std::string method = "";    //使用的方法
+        std::string path = "";      //相关文件的dll url shellcode
+        DWORD pid = 0;              //进程号
+        std::string procName = "";  //进程名字
+        auto injector = Injector(); //注入实例
 
-        for (size_t i = 0; i < words.size(); i++) {
+        for (size_t i = 0; i < words.size(); i++) { //设置参数
             if (words[i].starts_with("-method")) {
                 method = words[++i];
             }
@@ -99,47 +98,39 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
             }
         }
         
-        
-        //std::string report = "method: " + method;
-        //report += "\npath: " + path;
-        //report += "\nproc: " + procName;
-        //report += "\npid:  " + std::to_string(pid);
-        //MessageBoxA(NULL, report.c_str(), "debug", MB_OK);
-
-        if (!procName.empty())
-            pid = injector.getPidByName(procName.c_str());
-        if (pid == 0) {
+        if (!procName.empty())  //进程名字不为空
+            pid = injector.getPidByName(procName.c_str());  //通过进程名字得到pid
+        if (pid == 0) { //pid不能为空
             MessageBoxA(NULL, "No Such Process Can be injected", "error", MB_OK | MB_ICONERROR);
             return 0;
         }
 
-        if (method == "net")
+        if (method == "net")    //使用http get请求反射式加载dll
             injector.internetInject(pid, path);
-        else if (method == "rmtdll") {
+        else if (method == "rmtdll") {  //远程线程注入
             injector.dllPathSetter(path);
             injector.remoteThreadInject(pid);
         }
-        else if (method == "refdll") {
+        else if (method == "refdll") {  //反射式注入
             injector.reflectInject(pid);
             injector.remoteThreadInject(pid);
         }
-        else if (method == "apcdll") {
+        else if (method == "apcdll") {  //apc队列注入
             injector.apcInject(pid);
             injector.remoteThreadInject(pid);
         }
-        else if (method == "rmtsc")
+        else if (method == "rmtsc")     //远程线程注入shellcode
             injector.shellcodeInject(path, pid);
-        else if (method == "apcsc")
+        else if (method == "apcsc")     //apc队列注入shellcode
             injector.apcShellcodeInject(path, pid);
-        else if (method == "ctxsc")
+        else if (method == "ctxsc")     //上下文注入(线程劫持)shellcode
             injector.contextShellcodeInject(path, pid);
         else
             MessageBoxA(NULL, "No Such Method", "error", MB_OK | MB_ICONERROR);
 
-
     }
-    else {
-        GenConfigIniFile();
+    else {  //使用GUI界面
+        GenConfigIniFile(); //imgui相关的窗口参数
         WNDCLASSEXW wc = { };
         wc.cbSize = sizeof(WNDCLASSEX);
         wc.lpfnWndProc = WndProc;
@@ -152,12 +143,12 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
         HWND hwnd = CreateWindowExW(0, L"X-inject", L"X-inject",
             WS_POPUP | WS_EX_TRANSPARENT, CW_USEDEFAULT, CW_USEDEFAULT,
             GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), NULL, NULL, NULL, NULL
-        );
+        );  //创建windows窗口
         SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-        SetLayeredWindowAttributes(hwnd, RGB(255, 255, 255), 255, LWA_COLORKEY);
-        SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+        SetLayeredWindowAttributes(hwnd, RGB(255, 255, 255), 255, LWA_COLORKEY);    //设置全局透明
+        SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);      //设置初始位置
 
-        // Initialize Direct3D
+        // Imgui Initialize Direct3D
         if (!CreateDeviceD3D(hwnd))
         {
             CleanupDeviceD3D();
@@ -198,9 +189,6 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
         // Load Fonts
         io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\Deng.ttf", 18, nullptr, io.Fonts->GetGlyphRangesChineseFull());
 
-
-
-
         // Main loop
         bool done = false;
         while (!done)
@@ -226,8 +214,8 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
 
             ////////////  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS
 
-            MainWindow::InitWindow();
-            MainWindow::Dispatcher();
+            MainWindow::InitWindow();   //单次初始化窗口
+            MainWindow::Dispatcher();   //刷新窗口
 
             ////////////  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS
 

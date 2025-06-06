@@ -1,7 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include <winternl.h>
-// ���� NtQuerySystemInformation ����ָ������
+// NtQuerySystemInformation 相关数据结构
 typedef enum _KWAIT_REASON {
     Executive,
     FreePage,
@@ -51,7 +51,6 @@ typedef NTSTATUS(WINAPI* fnNtQuerySystemInformation)(
     ULONG SystemInformationLength,
     PULONG ReturnLength);
 
-// ���� SYSTEM_PROCESS_INFORMATION �ṹ
 typedef struct _SYSTEM_THREADS {
     LARGE_INTEGER   KernelTime;
     LARGE_INTEGER   UserTime;

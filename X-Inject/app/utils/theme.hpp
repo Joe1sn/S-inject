@@ -1,3 +1,6 @@
+/*
+* ÉèÖÃÖ÷Ìâ
+*/
 #pragma once
 
 #include "./spectrum.h"
