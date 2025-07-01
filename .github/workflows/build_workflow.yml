@@ -1,101 +1,127 @@
-name: Windows Build and Release
+name: Build and Release Windows CMake Project
 
 on:
   push:
     tags:
-      - 'v*' # This workflow will run when a tag starting with 'v' is pushed
-
-env:
-  BUILD_TYPE: Release
-  VERSION_BASE: "2.3" # Starting version number
-  OUTPUT_DIR: "build_output"
+      - 'v*'        # 以v开头的tag触发
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build Windows Executable
     runs-on: windows-latest
 
+    strategy:
+      matrix:
+        arch: [x86, x64]
+
+    env:
+      BUILD_TYPE: Release
+      TARGET_NAME: S-inject.exe
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-    - name: Get version from tag or use base version
-      id: version
+    - name: Setup CMake
+      uses: lukka/get-cmake@v3
+
+    - name: Setup MSVC environment
+      shell: powershell
+      id: vssetup
       run: |
-        # If tag exists (format vX.Y.Z), use it, otherwise use VERSION_BASE
-        if [[ $GITHUB_REF == refs/tags/* ]]; then
-          VERSION=${GITHUB_REF#refs/tags/v}
-        else
-          VERSION=$VERSION_BASE.${GITHUB_RUN_NUMBER}
-        fi
-        echo "Version: $VERSION"
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        $vsPath = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+        if (-not $vsPath) { throw "Visual Studio not found" }
+        $vcvarsall = Join-Path $vsPath 'VC\Auxiliary\Build\vcvarsall.bat'
+        Write-Host "::set-output name=vcvarsall::$vcvarsall"
 
-    - name: Set up MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-
-    - name: Install NASM (for ASM support)
-      run: choco install nasm -y
-
-    - name: Set up CMake
-      uses: cmake-actions/setup-cmake@v1
-
-    - name: Create build directory
-      run: mkdir build
-
-    - name: Configure with CMake
-      working-directory: ./build
-      run: cmake .. -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DVERSION=${{ steps.version.outputs.version }}
-
-    - name: Build with CMake
-      working-directory: ./build
-      run: cmake --build . --config ${{ env.BUILD_TYPE }}
-
-    - name: Create output directory
-      run: mkdir -p ${{ env.OUTPUT_DIR }}
-
-    - name: Copy artifacts
+    - name: Configure and Build ${{ matrix.arch }}
+      shell: cmd
       run: |
-        # Copy all built executables and DLLs to output directory
-        copy build\${{ env.BUILD_TYPE }}\*.exe ${{ env.OUTPUT_DIR }}
-        copy build\${{ env.BUILD_TYPE }}\*.dll ${{ env.OUTPUT_DIR }} 2>nul || exit 0
+        call "%VCVARSALL%" ${{ matrix.arch }}
+        if exist build rd /s /q build
+        mkdir build
+        cd build
+        cmake -G "Ninja" -A ${{ matrix.arch }} -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=%CD% -DTARGET_NAME=${{ env.TARGET_NAME }} ..
+        cmake --build . --config %BUILD_TYPE%
+      env:
+        VCVARSALL: ${{ steps.vssetup.outputs.vcvarsall }}
 
-    - name: Zip artifacts
+    - name: Rename executable to S-inject.exe (if needed)
+      shell: cmd
       run: |
-        7z a -tzip ${{ env.OUTPUT_DIR }}/release_v${{ steps.version.outputs.version }}.zip ${{ env.OUTPUT_DIR }}\*.*
-        echo "ZIP_PATH=${{ env.OUTPUT_DIR }}/release_v${{ steps.version.outputs.version }}.zip" >> $GITHUB_ENV
+        cd build\%BUILD_TYPE%
+        if not exist "%TARGET_NAME%" (
+          rem 找到exe文件并重命名
+          for %%f in (*.exe) do (
+            ren "%%f" "%TARGET_NAME%"
+          )
+        )
+      env:
+        TARGET_NAME: ${{ env.TARGET_NAME }}
+        BUILD_TYPE: ${{ env.BUILD_TYPE }}
 
-    - name: Upload artifact
+    - name: Zip ${{ matrix.arch }} Release
+      shell: powershell
+      run: |
+        cd build\%BUILD_TYPE%
+        Compress-Archive -Path * -DestinationPath ../../${{ matrix.arch }}-release.zip
+
+    - name: Upload artifact ${{ matrix.arch }} Release
       uses: actions/upload-artifact@v3
       with:
-        name: windows-build-v${{ steps.version.outputs.version }}
-        path: ${{ env.OUTPUT_DIR }}
+        name: ${{ matrix.arch }}-release
+        path: ${{ matrix.arch }}-release.zip
 
   release:
-    name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v2.3') || startsWith(github.ref, 'refs/tags/v2.') || startsWith(github.ref, 'refs/tags/v')
 
     steps:
-    - name: Download artifact
+    - name: Download x86 artifact
       uses: actions/download-artifact@v3
       with:
-        name: windows-build-v${{ needs.build.outputs.version }}
+        name: x86-release
+        path: ./x86-release
 
-    - name: Get version
-      id: version
-      run: |
-        VERSION=${GITHUB_REF#refs/tags/v}
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
+    - name: Download x64 artifact
+      uses: actions/download-artifact@v3
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release v${{ steps.version.outputs.version }}
-        body: |
-          Windows build of version ${{ steps.version.outputs.version }}
-          - Built with CMake
-          - Includes C/C++ and ASM components
-        files: release_v${{ steps.version.outputs.version }}.zip
+        name: x64-release
+        path: ./x64-release
+
+    - name: Rename artifacts with version in filename
+      run: |
+        mv x86-release/x86-release.zip x86-release/S-inject-x86-${{ github.ref_name }}.zip
+        mv x64-release/x64-release.zip x64-release/S-inject-x64-${{ github.ref_name }}.zip
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+
+    - name: Upload x86 artifact to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./x86-release/S-inject-x86-${{ github.ref_name }}.zip
+        asset_name: S-inject-x86-${{ github.ref_name }}.zip
+        asset_content_type: application/zip
+
+    - name: Upload x64 artifact to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./x64-release/S-inject-x64-${{ github.ref_name }}.zip
+        asset_name: S-inject-x64-${{ github.ref_name }}.zip
+        asset_content_type: application/zip
