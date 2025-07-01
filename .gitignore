@@ -3,6 +3,7 @@
 **/Debug
 **/Release
 **/x64
+**/build
 *.pdb
 *.idb
 *.ini

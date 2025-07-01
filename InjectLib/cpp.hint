@@ -1,2 +1,0 @@
-#define INJECTLIB_API __declspec(dllexport)
-#define INJECTLIB_API __declspec(dllimport)
