@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup CMake
-        uses: lukka/get-cmake@v2
+        uses: actions/setup-cmake@v1
         with:
           cmake-version: '3.26.4'
 
