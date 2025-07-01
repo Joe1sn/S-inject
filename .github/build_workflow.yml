@@ -24,10 +24,11 @@ jobs:
           cmake-version: '3.26.4'  # 或其他你需要的版本
 
       - name: Configure CMake
-        run: cmake -S . -B build_${{ matrix.arch }} -G "Visual Studio 17 2022" -A ${{ matrix.arch }} --config MinSizeRel
+        run: cmake -S . -B build_${{ matrix.arch }} -G "Visual Studio 17 2022" -A ${{ matrix.arch }}
+
 
       - name: Build
-        run: cmake --build build_${{ matrix.arch }} --config MinSizeRel -- /m
+        run: cmake --build build_${{ matrix.arch }} --config MinSizeRel -- /m /p:RestorePackages=false
 
       - name: Package artifacts
         shell: powershell
