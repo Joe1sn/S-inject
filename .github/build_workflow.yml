@@ -24,22 +24,28 @@ jobs:
           cmake-version: '3.26.4'  # 或其他你需要的版本
 
       - name: Configure CMake
-        run: cmake -S . -B build_${{ matrix.arch }} -G "Visual Studio 17 2022" -A ${{ matrix.arch }} -DCMAKE_BUILD_TYPE=MinSizeRel
+        run: cmake -S . -B build_${{ matrix.arch }} -G "Visual Studio 17 2022" -A ${{ matrix.arch }} --config MinSizeRel
 
       - name: Build
         run: cmake --build build_${{ matrix.arch }} --config MinSizeRel -- /m
 
       - name: Package artifacts
+        shell: powershell
         run: |
-          mkdir -p artifacts
-          xcopy build_${{ matrix.arch }}\MinSizeRel\*.exe artifacts\ /Y /I
-          xcopy build_${{ matrix.arch }}\MinSizeRel\*.dll artifacts\ /Y /I
+          New-Item -ItemType Directory -Force -Path artifacts
+          Copy-Item -Path build_${{ matrix.arch }}\MinSizeRel\*.exe -Destination artifacts\
+          Copy-Item -Path build_${{ matrix.arch }}\MinSizeRel\*.dll -Destination artifacts\
+
+      - name: Zip artifacts
+        shell: powershell
+        run: |
+          Compress-Archive -Path artifacts\* -DestinationPath artifacts_${{ matrix.arch }}.zip
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: s-inject_${{ matrix.arch }}
-          path: artifacts/
+          path: artifacts_${{ matrix.arch }}.zip
           
   release:
     needs: build
@@ -70,7 +76,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: s-inject_x64.zip
-          asset_path: x64/artifacts
+          asset_path: x64/artifacts_x64.zip
           asset_name: s-inject_x64.zip
           asset_content_type: application/zip
 
@@ -79,6 +85,6 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: s-inject_x86.zip
-          asset_path: x86/artifacts
+          asset_path: x86/artifacts_Win32.zip
           asset_name: s-inject_x86.zip
           asset_content_type: application/zip
