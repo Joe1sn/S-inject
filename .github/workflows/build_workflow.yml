@@ -16,10 +16,10 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Setup CMake
-        uses: actions/setup-cmake@v4
+        uses: actions/setup-cmake@v3
         with:
           cmake-version: '3.26.4'
 
@@ -53,13 +53,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Download x64 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: s-inject_x64
           path: x64
 
       - name: Download x86 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: s-inject_Win32
           path: x86
