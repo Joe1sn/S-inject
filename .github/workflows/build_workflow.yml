@@ -16,12 +16,12 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup CMake
-        uses: lukka/get-cmake@v3
+        uses: actions/setup-cmake@v4
         with:
-          cmake-version: '3.26.4'  # 或其他你需要的版本
+          cmake-version: '3.26.4'
 
       - name: Configure CMake
         run: cmake -S . -B build_${{ matrix.arch }} -G "Visual Studio 17 2022" -A ${{ matrix.arch }}
@@ -43,7 +43,7 @@ jobs:
           Compress-Archive -Path artifacts\* -DestinationPath artifacts_${{ matrix.arch }}.zip
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: s-inject_${{ matrix.arch }}
           path: artifacts_${{ matrix.arch }}.zip
@@ -53,13 +53,13 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Download x64 artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: s-inject_x64
           path: x64
 
       - name: Download x86 artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: s-inject_Win32
           path: x86
