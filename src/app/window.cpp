@@ -169,7 +169,7 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD)> inject
 	ImGui::End();
 }
 
-// ע��dll�Ĵ��ڣ��Զ���ע�뷽��
+// 注入dll的选择窗口
 VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD, std::string)> injectMenthod)
 {
 	static char url[0x1000] = {0};
@@ -204,7 +204,7 @@ VOID MainWindow::InjectDLL(const char Title[], std::function<void(DWORD, std::st
 	ImGui::End();
 }
 
-// ע��shellcode
+// 注入shellcode的选择窗口
 VOID MainWindow::InjectShellcode(const char Title[], std::function<void(std::string, DWORD)> injectMenthod)
 {
 	static char Shellcode[0x1000] = {0};
