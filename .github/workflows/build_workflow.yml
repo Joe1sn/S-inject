@@ -1,91 +1,113 @@
-name: Windows CMake Build and Release
+name: CMake on multiple platforms
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      with:
+        tag_name: v${{ github.sha }}  # 使用 Git SHA 值作为标签名，确保唯一性
+        release_name: Release v${{ github.sha }}
+        body: "Release of binaries built on GitHub Actions"
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
-
-    runs-on: windows-latest
-
+    runs-on: ${{ matrix.os }}
+    needs: create-release
     strategy:
+      fail-fast: false
       matrix:
-        arch: [x64, Win32]   # Win32代表32位，x64是64位
+        os: [windows-latest]
+        build_type: [Release]
+        c_compiler: [gcc, clang, cl]
+        include:
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
+        exclude:
+          - os: windows-latest
+            c_compiler: gcc
+          - os: windows-latest
+            c_compiler: clang
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+      with:
+        submodules: true  
 
-      - name: Setup CMake
-        uses: actions/setup-cmake@v1
-        with:
-          cmake-version: '3.26.4'
+    - name: Set reusable strings
+      id: strings
+      shell: bash
+      run: |
+        # 动态生成输出目录和二进制文件名
+        OUTPUT_DIR="${{ github.workspace }}/build-${{ matrix.os }}-${{ matrix.c_compiler }}"
+        BINARY_NAME="myapp-${{ matrix.os }}-${{ matrix.c_compiler }}"
+        echo "output-dir=$OUTPUT_DIR" >> "$GITHUB_OUTPUT"
+        echo "binary-name=$BINARY_NAME" >> "$GITHUB_OUTPUT"
 
-      - name: Configure CMake
-        run: cmake -S . -B build_${{ matrix.arch }} -G "Visual Studio 17 2022" -A ${{ matrix.arch }}
+    - name: Configure CMake
+      run: >
+        cmake -B ${{ steps.strings.outputs.output-dir }}
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${{ steps.strings.outputs.output-dir }}
+        -DCMAKE_EXECUTABLE_OUTPUT_NAME=${{ steps.strings.outputs.binary-name }}
+        -S ${{ github.workspace }}
 
+    - name: Build
+      run: cmake --build ${{ steps.strings.outputs.output-dir }} --config ${{ matrix.build_type }}
 
-      - name: Build
-        run: cmake --build build_${{ matrix.arch }} --config MinSizeRel -- /m /p:RestorePackages=false
+    - name: Test
+      working-directory: ${{ steps.strings.outputs.output-dir }}
+      run: ctest --build-config ${{ matrix.build_type }}
 
-      - name: Package artifacts
-        shell: powershell
-        run: |
-          New-Item -ItemType Directory -Force -Path artifacts
-          Copy-Item -Path build_${{ matrix.arch }}\MinSizeRel\*.exe -Destination artifacts\
-          Copy-Item -Path build_${{ matrix.arch }}\MinSizeRel\*.dll -Destination artifacts\
+    - name: Package binaries (Windows)
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
+      run: |
+        $outputDir = "${{ steps.strings.outputs.output-dir }}\${{matrix.build_type}}"
+        $binaryFile = "S-Inject.exe"
+        $archiveName = "${{matrix.os}}_${{matrix.c_compiler}}_S-Inject.tar.gz"
 
-      - name: Zip artifacts
-        shell: powershell
-        run: |
-          Compress-Archive -Path artifacts\* -DestinationPath artifacts_${{ matrix.arch }}.zip
+        if (Test-Path -Path "$outputDir\$binaryFile") {
+          Compress-Archive -Path "$outputDir\$binaryFile" -DestinationPath "$outputDir\..\$archiveName"
+          Copy-Item -Path "$outputDir\$binaryFile" -Destination "$outputDir\..\${{matrix.os}}_${{matrix.c_compiler}}_$binaryFile"
+        } else {
+          Write-Error "Error: Binary file '$binaryFile' not found!"
+          exit 1
+        }
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: s-inject_${{ matrix.arch }}
-          path: artifacts_${{ matrix.arch }}.zip
-          
-  release:
-    needs: build
-    runs-on: windows-latest
-    steps:
-      - name: Download x64 artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: s-inject_x64
-          path: x64
+    - name: Upload compress as release assets
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ${{ steps.strings.outputs.output-dir }}/${{matrix.os}}_${{matrix.c_compiler}}_S-Inject.tar.gz
+        asset_name: ${{matrix.os}}_${{matrix.c_compiler}}_S-Inject.tar.gz
+        asset_content_type: application/gzip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download x86 artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: s-inject_Win32
-          path: x86
-
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: Release generated by GitHub Actions
-
-      - name: Upload x64 Release Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: s-inject_x64.zip
-          asset_path: x64/artifacts_x64.zip
-          asset_name: s-inject_x64.zip
-          asset_content_type: application/zip
-
-      - name: Upload x86 Release Asset
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: s-inject_x86.zip
-          asset_path: x86/artifacts_Win32.zip
-          asset_name: s-inject_x86.zip
-          asset_content_type: application/zip
+    - name: Upload windows binaries as release assets
+      uses: actions/upload-release-asset@v1
+      if: matrix.os == 'windows-latest'
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ${{ steps.strings.outputs.output-dir }}/${{matrix.os}}_${{matrix.c_compiler}}_S-Inject.exe
+        asset_name: ${{matrix.os}}_${{matrix.c_compiler}}_S-Inject.exe
+        asset_content_type: application/gzip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
