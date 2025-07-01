@@ -1,113 +1,101 @@
-name: CMake on multiple platforms
+name: Windows Build and Release
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - 'v*' # This workflow will run when a tag starting with 'v' is pushed
+
+env:
+  BUILD_TYPE: Release
+  VERSION_BASE: "2.3" # Starting version number
+  OUTPUT_DIR: "build_output"
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-    steps:
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      with:
-        tag_name: v${{ github.sha }}  # 使用 Git SHA 值作为标签名，确保唯一性
-        release_name: Release v${{ github.sha }}
-        body: "Release of binaries built on GitHub Actions"
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   build:
-    runs-on: ${{ matrix.os }}
-    needs: create-release
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
-        build_type: [Release]
-        c_compiler: [gcc, clang, cl]
-        include:
-          - os: windows-latest
-            c_compiler: cl
-            cpp_compiler: cl
-        exclude:
-          - os: windows-latest
-            c_compiler: gcc
-          - os: windows-latest
-            c_compiler: clang
+    name: Build Windows Executable
+    runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: true  
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    - name: Set reusable strings
-      id: strings
-      shell: bash
+    - name: Get version from tag or use base version
+      id: version
       run: |
-        # 动态生成输出目录和二进制文件名
-        OUTPUT_DIR="${{ github.workspace }}/build-${{ matrix.os }}-${{ matrix.c_compiler }}"
-        BINARY_NAME="myapp-${{ matrix.os }}-${{ matrix.c_compiler }}"
-        echo "output-dir=$OUTPUT_DIR" >> "$GITHUB_OUTPUT"
-        echo "binary-name=$BINARY_NAME" >> "$GITHUB_OUTPUT"
+        # If tag exists (format vX.Y.Z), use it, otherwise use VERSION_BASE
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/v}
+        else
+          VERSION=$VERSION_BASE.${GITHUB_RUN_NUMBER}
+        fi
+        echo "Version: $VERSION"
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-    - name: Configure CMake
-      run: >
-        cmake -B ${{ steps.strings.outputs.output-dir }}
-        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${{ steps.strings.outputs.output-dir }}
-        -DCMAKE_EXECUTABLE_OUTPUT_NAME=${{ steps.strings.outputs.binary-name }}
-        -S ${{ github.workspace }}
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Build
-      run: cmake --build ${{ steps.strings.outputs.output-dir }} --config ${{ matrix.build_type }}
+    - name: Install NASM (for ASM support)
+      run: choco install nasm -y
 
-    - name: Test
-      working-directory: ${{ steps.strings.outputs.output-dir }}
-      run: ctest --build-config ${{ matrix.build_type }}
+    - name: Set up CMake
+      uses: cmake-actions/setup-cmake@v1
 
-    - name: Package binaries (Windows)
-      if: matrix.os == 'windows-latest'
-      shell: pwsh
+    - name: Create build directory
+      run: mkdir build
+
+    - name: Configure with CMake
+      working-directory: ./build
+      run: cmake .. -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DVERSION=${{ steps.version.outputs.version }}
+
+    - name: Build with CMake
+      working-directory: ./build
+      run: cmake --build . --config ${{ env.BUILD_TYPE }}
+
+    - name: Create output directory
+      run: mkdir -p ${{ env.OUTPUT_DIR }}
+
+    - name: Copy artifacts
       run: |
-        $outputDir = "${{ steps.strings.outputs.output-dir }}\${{matrix.build_type}}"
-        $binaryFile = "S-Inject.exe"
-        $archiveName = "${{matrix.os}}_${{matrix.c_compiler}}_S-Inject.tar.gz"
+        # Copy all built executables and DLLs to output directory
+        copy build\${{ env.BUILD_TYPE }}\*.exe ${{ env.OUTPUT_DIR }}
+        copy build\${{ env.BUILD_TYPE }}\*.dll ${{ env.OUTPUT_DIR }} 2>nul || exit 0
 
-        if (Test-Path -Path "$outputDir\$binaryFile") {
-          Compress-Archive -Path "$outputDir\$binaryFile" -DestinationPath "$outputDir\..\$archiveName"
-          Copy-Item -Path "$outputDir\$binaryFile" -Destination "$outputDir\..\${{matrix.os}}_${{matrix.c_compiler}}_$binaryFile"
-        } else {
-          Write-Error "Error: Binary file '$binaryFile' not found!"
-          exit 1
-        }
+    - name: Zip artifacts
+      run: |
+        7z a -tzip ${{ env.OUTPUT_DIR }}/release_v${{ steps.version.outputs.version }}.zip ${{ env.OUTPUT_DIR }}\*.*
+        echo "ZIP_PATH=${{ env.OUTPUT_DIR }}/release_v${{ steps.version.outputs.version }}.zip" >> $GITHUB_ENV
 
-    - name: Upload compress as release assets
-      uses: actions/upload-release-asset@v1
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ${{ steps.strings.outputs.output-dir }}/${{matrix.os}}_${{matrix.c_compiler}}_S-Inject.tar.gz
-        asset_name: ${{matrix.os}}_${{matrix.c_compiler}}_S-Inject.tar.gz
-        asset_content_type: application/gzip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: windows-build-v${{ steps.version.outputs.version }}
+        path: ${{ env.OUTPUT_DIR }}
 
-    - name: Upload windows binaries as release assets
-      uses: actions/upload-release-asset@v1
-      if: matrix.os == 'windows-latest'
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v3
       with:
-        upload_url: ${{ needs.create-release.outputs.upload_url }}
-        asset_path: ${{ steps.strings.outputs.output-dir }}/${{matrix.os}}_${{matrix.c_compiler}}_S-Inject.exe
-        asset_name: ${{matrix.os}}_${{matrix.c_compiler}}_S-Inject.exe
-        asset_content_type: application/gzip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        
+        name: windows-build-v${{ needs.build.outputs.version }}
+
+    - name: Get version
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release v${{ steps.version.outputs.version }}
+        body: |
+          Windows build of version ${{ steps.version.outputs.version }}
+          - Built with CMake
+          - Includes C/C++ and ASM components
+        files: release_v${{ steps.version.outputs.version }}.zip
