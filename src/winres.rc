@@ -1,0 +1,5 @@
+#include "windows.h"
+#include "include/window/resources.h"
+
+IDI_ICON1 ICON "src/resource/ICON.ico"
+IDR_FONT1 RCDATA "src/resource/mc.ttf"

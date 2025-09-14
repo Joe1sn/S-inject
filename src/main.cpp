@@ -1,19 +1,25 @@
 // application for DirectX 11
 
-#include "include/app/window.h"
-#include "include/utils/helper.hpp"
-#include "include/utils/theme.hpp"
-
-#include "include/imgui/imgui.h"
-#include "include/imgui/imgui_impl_win32.h"
-#include "include/imgui/imgui_impl_dx11.h"
-
 #include <d3d11.h>
 #include <tchar.h>
 #include <windows.h>
 #include <iostream>
 #include <fstream>
+#include <vector>
 
+#include "extern/ImGui/imgui.h"
+#include "extern/ImGui/imgui_impl_win32.h"
+#include "extern/ImGui/imgui_impl_dx11.h"
+
+#include "include/window/MainWindow.hpp"
+#include "include/window/resources.h"
+#include "include/app/config.hpp"
+#include "include/utils/error.hpp"
+
+#define IDI_MAIN_ICON 101
+
+using namespace XInject::config;
+using namespace XInject::Injector;
 // Data
 static ID3D11Device *g_pd3dDevice = nullptr;
 static ID3D11DeviceContext *g_pd3dDeviceContext = nullptr;
@@ -23,7 +29,6 @@ static UINT g_ResizeWidth = 0, g_ResizeHeight = 0;
 static ID3D11RenderTargetView *g_mainRenderTargetView = nullptr;
 
 // Forward declarations of helper functions
-void GenConfigIniFile();
 bool CreateDeviceD3D(HWND hWnd);
 void CleanupDeviceD3D();
 void CreateRenderTarget();
@@ -33,134 +38,32 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 // Main code
 int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmdShow)
 {
-    bool needGui = true;
     std::string commandLine = lpCmd;
     if (!commandLine.empty())
-        needGui = false;
+        XInject::config::useGui = false;
 
-    if (!needGui)
+    if (!XInject::config::useGui)
     { // 不需要GUI界面
-        std::vector<std::string> words = {};
-        std::string word = "";
-
-        bool intoRef = false;      // 是否处于 `"` 中
-        for (auto c : commandLine) // 对命令行分词处理，得到参数
-        {
-            if (c == ' ')
-            { // 下一个参数
-                if (!intoRef)
-                { // 不在`"`中，开始的到下一个参数
-                    if (!word.empty())
-                    {
-                        words.push_back(word);
-                        word.clear();
-                    }
-                }
-                else
-                {
-                    word.append(1, c);
-                }
-                continue;
-            }
-            else if (c == '\n')
-            { // 命令行结束
-                if (!word.empty())
-                {
-                    words.push_back(word);
-                    word.clear();
-                }
-                break;
-            }
-            else if (c == '"')
-            { // 设置`"`状态
-                intoRef = !intoRef;
-            }
-            else
-                word.append(1, c);
-        }
-        words.push_back(word);
-        word.clear();
-
-        std::string method = "";    // 使用的方法
-        std::string path = "";      // 相关文件的dll url shellcode
-        DWORD pid = 0;              // 进程号
-        std::string procName = "";  // 进程名字
-        auto injector = Injector(); // 注入实例
-
-        for (size_t i = 0; i < words.size(); i++)
-        { // 设置参数
-            if (words[i].starts_with("-method"))
-            {
-                method = words[++i];
-            }
-            else if (words[i].starts_with("-path"))
-            {
-                path = words[++i];
-            }
-            else if (words[i].starts_with("-pid"))
-            {
-                pid = std::stoul(words[++i]);
-            }
-            else if (words[i].starts_with("-proc"))
-            {
-                procName = words[++i];
-            }
-        }
-
-        if (!procName.empty())                             // 进程名字不为空
-            pid = injector.getPidByName(procName.c_str()); // 通过进程名字得到pid
-        if (pid == 0)
-        { // pid不能为空
-            MessageBoxA(NULL, "No Such Process Can be injected", "error", MB_OK | MB_ICONERROR);
-            return 0;
-        }
-
-        if (method == "net") // 使用http get请求反射式加载dll
-            injector.internetInject(pid, path);
-        else if (method == "rmtdll")
-        { // 远程线程注入
-            injector.dllPathSetter(path);
-            injector.remoteThreadInject(pid);
-        }
-        else if (method == "refdll")
-        { // 反射式注入
-            injector.reflectInject(pid);
-            injector.remoteThreadInject(pid);
-        }
-        else if (method == "apcdll")
-        { // apc队列注入
-            injector.apcInject(pid);
-            injector.remoteThreadInject(pid);
-        }
-        else if (method == "rmtsc") // 远程线程注入shellcode
-            injector.shellcodeInject(path, pid);
-        else if (method == "apcsc") // apc队列注入shellcode
-            injector.apcShellcodeInject(path, pid);
-        else if (method == "ctxsc") // 上下文注入(线程劫持)shellcode
-            injector.contextShellcodeInject(path, pid);
-        else
-            MessageBoxA(NULL, "No Such Method", "error", MB_OK | MB_ICONERROR);
     }
     else
-    {                       // 使用GUI界面
-        GenConfigIniFile(); // imgui相关的窗口参数
-        WNDCLASSEXW wc = {};
+    {
+        // Make process DPI aware and obtain main monitor scale
+        ImGui_ImplWin32_EnableDpiAwareness();
+        float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY));
+
+        // Create application window
+        WNDCLASSEXW wc = {sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"X-inject", nullptr};
         wc.cbSize = sizeof(WNDCLASSEX);
-        wc.lpfnWndProc = WndProc;
-        wc.lpszClassName = L"X-inject";
+        wc.hIcon = LoadIcon(instance, MAKEINTRESOURCE(IDI_ICON1));
+        wc.hIconSm = LoadIcon(instance, MAKEINTRESOURCE(IDI_ICON1));
         // wc.hInstance = instance;
-
         wc.style = CS_HREDRAW | CS_VREDRAW;
-
         ::RegisterClassExW(&wc);
         HWND hwnd = CreateWindowExW(0, L"X-inject", L"X-inject",
-                                    WS_POPUP | WS_EX_TRANSPARENT, CW_USEDEFAULT, CW_USEDEFAULT,
-                                    GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), NULL, NULL, NULL, NULL); // 创建windows窗口
-        SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-        SetLayeredWindowAttributes(hwnd, RGB(255, 255, 255), 255, LWA_COLORKEY); // 设置全局透明
-        SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);           // 设置初始位置
+                                    WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT,
+                                    520, 260, NULL, NULL, wc.hInstance, NULL); // 创建windows窗口
 
-        // Imgui Initialize Direct3D
+        // Initialize Direct3D
         if (!CreateDeviceD3D(hwnd))
         {
             CleanupDeviceD3D();
@@ -172,35 +75,39 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
         ::ShowWindow(hwnd, SW_SHOWDEFAULT);
         ::UpdateWindow(hwnd);
 
-        // Setup context
-        // IMGUI_CHECKVERSION();
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO &io = ImGui::GetIO();
         (void)io;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
-        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
-        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
 
         // Setup Dear ImGui style
         // ImGui::StyleColorsDark();
         ImGui::StyleColorsLight();
-        Theme::purpeDragon();
 
-        // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+        // Setup scaling
         ImGuiStyle &style = ImGui::GetStyle();
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            style.WindowRounding = 0.0f;
-            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-        }
+        style.ScaleAllSizes(main_scale); // Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
+        style.FontScaleDpi = main_scale; // Set initial font scale. (using io.ConfigDpiScaleFonts=true makes this unnecessary. We leave both here for documentation purpose)
 
         // Setup Platform/Renderer backends
         ImGui_ImplWin32_Init(hwnd);
         ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
         // Load Fonts
-        io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\Deng.ttf", 18, nullptr, io.Fonts->GetGlyphRangesChineseFull());
+        HRSRC hRes = FindResource(instance, MAKEINTRESOURCE(IDR_FONT1), RT_RCDATA);
+        if (hRes)
+        {
+            HGLOBAL hMem = LoadResource(instance, hRes);
+            void *pData = LockResource(hMem);
+            DWORD size = SizeofResource(instance, hRes);
+
+            // DWORD nFonts = 0;
+            // AddFontMemResourceEx(pData, size, NULL, &nFonts);
+            io.Fonts->AddFontFromMemoryTTF(pData, size, 16, nullptr, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
+        }
 
         // Main loop
         bool done = false;
@@ -219,6 +126,23 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
             if (done)
                 break;
 
+            // Handle window being minimized or screen locked
+            if (g_SwapChainOccluded && g_pSwapChain->Present(0, DXGI_PRESENT_TEST) == DXGI_STATUS_OCCLUDED)
+            {
+                ::Sleep(10);
+                continue;
+            }
+            g_SwapChainOccluded = false;
+
+            // Handle window resize (we don't resize directly in the WM_SIZE handler)
+            if (g_ResizeWidth != 0 && g_ResizeHeight != 0)
+            {
+                CleanupRenderTarget();
+                g_pSwapChain->ResizeBuffers(0, g_ResizeWidth, g_ResizeHeight, DXGI_FORMAT_UNKNOWN, 0);
+                g_ResizeWidth = g_ResizeHeight = 0;
+                CreateRenderTarget();
+            }
+
             // Start the Dear ImGui frame
             ImGui_ImplDX11_NewFrame();
             ImGui_ImplWin32_NewFrame();
@@ -226,25 +150,18 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
 
             ////////////  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS
 
-            MainWindow::InitWindow(); // 单次初始化窗口
-            MainWindow::Dispatcher(); // 刷新窗口
+            {
+                XInject::MainWindow::setupUi();
+            }
 
             ////////////  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS
 
             // Rendering
             ImGui::Render();
-            // Rendering Method
             const float clear_color_with_alpha[4] = {1, 1, 1, 1};
             g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
             g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-
-            // Update and Render additional Platform Windows
-            if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-            {
-                ImGui::UpdatePlatformWindows();
-                ImGui::RenderPlatformWindowsDefault();
-            }
 
             // Present
             HRESULT hr = g_pSwapChain->Present(1, 0); // Present with vsync
@@ -261,154 +178,10 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
         ::DestroyWindow(hwnd);
         ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
     }
-
     return 0;
 }
 
 // Helper functions
-void GenConfigIniFile()
-{
-    DWORD attrib = GetFileAttributesA("imgui.ini");
-    if (attrib != INVALID_FILE_ATTRIBUTES)
-    {
-        return;
-    }
-    else
-    {
-        std::ofstream file("imgui.ini", std::ios::binary);
-        if (!file.is_open())
-            return;
-        file << "[Window][Debug##Default]\n";
-        file << "Pos=60,60\n";
-        file << "Size=400,400\n";
-        file << "Collapsed=0\n";
-
-        file << "[Window][Hello, world!]\n";
-        file << "Pos=1038,449\n";
-        file << "Size=494,422\n";
-        file << "Collapsed=0\n";
-
-        file << "[Window][Another Window]\n";
-        file << "Pos=701,395\n";
-        file << "Size=404,360\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x00000002,1\n";
-
-        file << "[Window][���]\n";
-        file << "Pos=631,519\n";
-        file << "Size=583,286\n";
-        file << "Collapsed=0\n";
-
-        file << "[Window][你好]\n";
-        file << "Pos=701,395\n";
-        file << "Size=404,360\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x00000002,0\n";
-
-        file << "[Window][S-inject GUI Version]\n";
-        file << "Pos=639,321\n";
-        file << "Size=543,339\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x00000005,0\n";
-
-        file << "[Window][Remote DLL Inject]\n";
-        file << "Pos=592,734\n";
-        file << "Size=774,120\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x0000000A,3\n";
-
-        file << "[Window][Reflect DLL Inject]\n";
-        file << "Pos=592,734\n";
-        file << "Size=774,120\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x0000000A,2\n";
-
-        file << "[Window][APC DLL Inject]\n";
-        file << "Pos=592,734\n";
-        file << "Size=774,120\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x0000000A,1\n";
-
-        file << "[Window][Remote Shellcode Inject]\n";
-        file << "Pos=592,734\n";
-        file << "Size=774,120\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x0000000A,1\n";
-
-        file << "[Window][APC Shellcode Inject]\n";
-        file << "Pos=592,734\n";
-        file << "Size=774,120\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x0000000A,0\n";
-
-        file << "[Window][Context Shellcode Inject]\n";
-        file << "Pos=592,708\n";
-        file << "Size=774,146\n";
-        file << "Collapsed=0\n";
-
-        file << "[Window][UnInject DLL]\n";
-        file << "Pos=592,322\n";
-        file << "Size=365,384\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x00000005,1\n";
-
-        file << "[Window][Injectable Process]\n";
-        file << "Pos=959,322\n";
-        file << "Size=407,384\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x00000003,0\n";
-
-        file << "[Window][S-inject x64]\n";
-        file << "Pos=592,322\n";
-        file << "Size=389,410\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x00000005,0\n";
-
-        file << "[Window][pid]\n";
-        file << "ViewportPos=60,60\n";
-        file << "ViewportId=0x5550C4ED\n";
-        file << "Size=635,1034\n";
-        file << "Collapsed=0\n";
-
-        file << "[Window][process id]\n";
-        file << "Pos=983,322\n";
-        file << "Size=383,410\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x00000006,0\n";
-
-        file << "[Window][S-inject x32]\n";
-        file << "Pos=375,464\n";
-        file << "Size=404,370\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x00000005,0\n";
-
-        file << "[Window][Inject From Internet]\n";
-        file << "Pos=592,734\n";
-        file << "Size=774,120\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x0000000A,0\n";
-
-        file << "[Window][shellcode process id]\n";
-        file << "Pos=981,322\n";
-        file << "Size=385,410\n";
-        file << "Collapsed=0\n";
-        file << "DockId=0x00000008,0\n";
-
-        file << "[Docking][Data]\n";
-        file << "DockNode          ID=0x00000002 Pos=701,395 Size=404,360 Selected=0x96791837\n";
-        file << "DockNode          ID=0x00000007 Pos=592,322 Size=774,532 Split=Y\n";
-        file << "DockNode        ID=0x00000009 Parent=0x00000007 SizeRef=774,410 Split=X\n";
-        file << "DockNode      ID=0x00000001 Parent=0x00000009 SizeRef=415,177 Split=X\n";
-        file << "DockNode    ID=0x00000004 Parent=0x00000001 SizeRef=232,533 Split=X Selected=0xD3F790C7\n";
-        file << "DockNode  ID=0x00000005 Parent=0x00000004 SizeRef=387,410 Selected=0xD3F790C7\n";
-        file << "DockNode  ID=0x00000008 Parent=0x00000004 SizeRef=385,410 Selected=0xB3407F9B\n";
-        file << "DockNode    ID=0x00000006 Parent=0x00000001 SizeRef=229,533 Selected=0x8AC5C89D\n";
-        file << "DockNode      ID=0x00000003 Parent=0x00000009 SizeRef=462,177 Selected=0x8E2C745A\n";
-        file << "DockNode        ID=0x0000000A Parent=0x00000007 SizeRef=774,120 Selected=0x7F6CE61D\n";
-
-        file.close();
-    }
-}
 
 bool CreateDeviceD3D(HWND hWnd)
 {
@@ -483,10 +256,6 @@ void CleanupRenderTarget()
     }
 }
 
-#ifndef WM_DPICHANGED
-#define WM_DPICHANGED 0x02E0 // From Windows SDK 8.1+ headers
-#endif
-
 // Forward declare message handler from imgui_impl_win32.cpp
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -515,15 +284,6 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         ::PostQuitMessage(0);
         return 0;
-    case WM_DPICHANGED:
-        if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DpiEnableScaleViewports)
-        {
-            // const int dpi = HIWORD(wParam);
-            // printf("WM_DPICHANGED to %d (%.0f%%)\n", dpi, (float)dpi / 96.0f * 100.0f);
-            const RECT *suggested_rect = (RECT *)lParam;
-            ::SetWindowPos(hWnd, nullptr, suggested_rect->left, suggested_rect->top, suggested_rect->right - suggested_rect->left, suggested_rect->bottom - suggested_rect->top, SWP_NOZORDER | SWP_NOACTIVATE);
-        }
-        break;
     }
     return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 }

@@ -2,41 +2,16 @@
 #include <iostream>
 #include <Windows.h>
 
+#include "include/app/config.hpp"
+
 namespace Error
 {
 
-    extern std::wstring GetLastErrorAsString()
-    {
+    extern std::wstring GetLastErrorAsString();
+    void ErrorMsgBox(std::wstring hint);
+    void WarnMsgBox(std::wstring message);
 
-        DWORD errorMessageID = ::GetLastError();
-        if (errorMessageID == 0)
-        {
-            return L"";
-        }
-
-        LPWSTR messageBuffer = nullptr;
-        size_t size = FormatMessage(
-            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&messageBuffer, 0, NULL);
-
-        std::wstring message(messageBuffer, size);
-        LocalFree(messageBuffer);
-
-        return message;
-    }
-
-    void ErrorMsgBox(std::wstring hint)
-    {
-        std::wstring errorMessage = GetLastErrorAsString();
-        if (errorMessage == L"")
-            MessageBox(NULL, hint.c_str(), L"Error", MB_OK | MB_ICONERROR);
-        else
-            MessageBox(NULL, (hint + L"\n" + errorMessage).c_str(), L"Error", MB_OK | MB_ICONERROR);
-    }
-
-    void WarnMsgBox(std::wstring message)
-    {
-        MessageBox(NULL, message.c_str(), L"Error", MB_OK | MB_ICONWARNING);
-    }
+    void error(std::wstring msg);
+    void warn(std::wstring msg);
 
 }
