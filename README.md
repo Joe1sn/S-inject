@@ -19,6 +19,8 @@
 
 ![image-20250914204952974](./assets/image-20250914204952974.png)
 
+![image-20250914210256156](./assets/image-20250914210256156.png)
+
 # Update
 
 - **[2025-9-14]** 更新界面操作逻辑，优化代码结构，更新了imgui，新增 [issue 8](https://github.com/Joe1sn/S-inject/issues/8) 的功能， **该版本暂时不持支纯终端使用**。

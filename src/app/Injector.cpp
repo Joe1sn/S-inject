@@ -284,7 +284,6 @@ namespace XInject
                     Error::error(L"Create Remote Thread Failed!");
                     VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
                     CloseHandle(hProcess);
-                    FreeModule(hmodDLL);
                     return false;
                 }
 #endif // _WIN32
@@ -386,7 +385,6 @@ namespace XInject
                     Error::error(L"Create Thread Failed");
                     // delete[] buffer;
                     VirtualFreeEx(hProcess, pAddress, (SIZE_T)dwAllocSize, MEM_COMMIT);
-                    CloseHandle(hFile);
                     CloseHandle(hProcess);
                     return false;
                 }
