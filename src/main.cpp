@@ -160,7 +160,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
         ::RegisterClassExW(&wc);
         HWND hwnd = CreateWindowExW(0, L"X-inject", L"X-inject",
                                     WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT,
-                                    520, 260, NULL, NULL, wc.hInstance, NULL); // 创建windows窗口
+                                    700, 350, NULL, NULL, wc.hInstance, NULL); // 创建windows窗口
 
         // Initialize Direct3D
         if (!CreateDeviceD3D(hwnd))

@@ -102,3 +102,17 @@ typedef struct _SYSTEM_PROC_INFORMATION
     LARGE_INTEGER OtherTransferCount;
     SYSTEM_THREADS Threads[1];
 } MySYSTEM_PROCESS_INFORMATION, *PMySYSTEM_PROCESS_INFORMATION;
+
+typedef NTSTATUS(NTAPI *fnNtQueryInformationThread)(
+    HANDLE ThreadHandle,
+    THREADINFOCLASS ThreadInformationClass,
+    PVOID ThreadInformation,
+    ULONG ThreadInformationLength,
+    PULONG ReturnLength);
+
+typedef NTSTATUS(NTAPI *fnNtQueryInformationProcess)(
+    HANDLE ProcessHandle,
+    PROCESSINFOCLASS ProcessInformationClass,
+    PVOID ProcessInformation,
+    ULONG ProcessInformationLength,
+    PULONG ReturnLength);

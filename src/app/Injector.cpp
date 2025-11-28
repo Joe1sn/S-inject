@@ -23,6 +23,23 @@ namespace XInject
                 Error::error(L"Failed to get NtQuerySystemInformation address");
                 return false;
             }
+
+            NtQueryInformationThread =
+                reinterpret_cast<fnNtQueryInformationThread>(GetProcAddress(hNtDll, "NtQueryInformationThread"));
+            if (!NtQueryInformationThread)
+            {
+                Error::error(L"Failed to get NtQueryInformationThread address");
+                return false;
+            }
+
+            NtQueryInformationProcess =
+                reinterpret_cast<fnNtQueryInformationProcess>(GetProcAddress(hNtDll, "NtQueryInformationProcess"));
+            if (!NtQueryInformationProcess)
+            {
+                Error::error(L"Failed to get NtQueryInformationProcess address");
+                return false;
+            }
+
             return true;
         }
 
@@ -311,6 +328,7 @@ namespace XInject
             SIZE_T dwAllocSize = args.size() + 1;
             SIZE_T dwWriteSize = 0;
             LPVOID pAddress = nullptr;
+            LPVOID pBootAddress = nullptr;
             HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
 
             if (hProcess == INVALID_HANDLE_VALUE)
@@ -345,26 +363,29 @@ namespace XInject
 
                 dwAllocSize = fileContent.size() + 1;
                 pAddress = VirtualAllocEx(hProcess, NULL, dwAllocSize, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-                bRet = ::WriteProcessMemory(hProcess, pAddress, fileContent.c_str(), dwAllocSize, &dwWriteSize);
+                bRet = ::WriteProcessMemory(hProcess, pAddress, fileContent.c_str(), fileContent.length(), &dwWriteSize);
                 if (!bRet)
                 {
-                    Error::error(L"Write Process Failed");
+                    Error::error(L"Write Dll to Process Failed");
                     VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
                     CloseHandle(hProcess);
                     return false;
                 }
+                pBootAddress = VirtualAllocEx(hProcess, NULL, XInject::Injector::shellcodeSize + 0x10, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+                for (size_t i = 0; i < 8; i++)
+                    bootshellcode[XInject::Injector::Offset + i] = *(PCHAR)((DWORD64)(&pAddress) + i);
 
-                DWORD dwReflectiveLoaderOffset = reflector::getOffset((HANDLE) & (fileContent[0]), (CHAR *)"ReflectiveLoader");
-                if (dwReflectiveLoaderOffset == 0)
+                bRet = ::WriteProcessMemory(hProcess, pBootAddress, bootshellcode, XInject::Injector::shellcodeSize, &dwWriteSize);
+                if (!bRet)
                 {
-                    Error::error(L"Get Export Function Error");
-                    VirtualFreeEx(hProcess, pAddress, (SIZE_T)dwAllocSize + 1, MEM_COMMIT);
+                    Error::error(L"Write Shellcode to Process Failed");
+                    VirtualFreeEx(hProcess, pBootAddress, dwAllocSize, MEM_COMMIT);
                     CloseHandle(hProcess);
                     return false;
                 }
 
                 LPTHREAD_START_ROUTINE lpReflectiveLoader = reinterpret_cast<LPTHREAD_START_ROUTINE>(
-                    reinterpret_cast<ULONG_PTR>(pAddress) + dwReflectiveLoaderOffset);
+                    reinterpret_cast<ULONG_PTR>(pBootAddress));
 
                 HANDLE hThread = NULL;
 #ifdef _WIN64
@@ -786,6 +807,7 @@ namespace XInject
             }
             return true;
         }
+
     }
 
 } // namespace XInject

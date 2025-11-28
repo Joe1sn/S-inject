@@ -10,6 +10,7 @@
 
 #include "include/utils/constant.hpp"
 #include "include/app/Injector.hpp"
+#include "include/app/format.hpp"
 #include "include/utils/crypto.hpp"
 
 using namespace XInject::constant;
@@ -18,6 +19,7 @@ namespace XInject
 {
     namespace MainWindow
     {
+        inline bool debugWnd = false;
         inline int method;
         inline int type;
         inline int pid;

@@ -12,6 +12,7 @@ set(SINJECT_INCLUDE
     include/app/S-Wisper.h
     include/app/config.hpp
     include/app/network.hpp
+    include/app/format.hpp
 
     include/window/MainWindow.hpp
     include/window/resources.h
@@ -34,6 +35,8 @@ set(SINJECT_SOURCE
     src/app/S-Wisper.c
     src/app/injector.cpp
     src/app/network.cpp
+    src/app/format.cpp
+
 
     src/utils/crypto.cpp
     src/utils/error.cpp

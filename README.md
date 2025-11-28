@@ -10,8 +10,8 @@
 
 **须知：**
 
-1. 反射式注入参考了著名github项目：https://github.com/stephenfewer/ReflectiveDLLInjection
-   该项目为反射式注入支持的DLL
+1. 反射式注入（手动映射）参考了著名github项目：https://github.com/stephenfewer/ReflectiveDLLInjection
+   **2025-11-28更新后支持所有dll**
 2. Shellcode使用base64编码后的shellcode
 3. 相关测试的DLL文件在`Test Files`文件夹中
 
@@ -25,6 +25,10 @@
 
 # Update
 
+- **[2025-11-28]** 更新窗口大小，反射式注入增强
+  1. 现在支持**任意x64 DLL**文件的反射式注入
+  2. 增强了对异常处理`.pdata`的映射功能。作者发现很多（包含该软件之前的版本）手动映射、反射注入对带有`try except`代码的dll无法实现注入后异常处理的运行，所以特意新增该功能。
+
 - **[2025-9-15]** 更新终端化操作，添加参数可以快速完成注入，主要新增了读取base64后的shellcode的文件来完成超长shellcode注入。用例见下方Feature的更新描述
 
 - **[2025-9-14]** 更新界面操作逻辑，优化代码结构，更新了imgui，新增 [issue 8](https://github.com/Joe1sn/S-inject/issues/8) 的功能， **该版本暂时不持支纯终端使用**。
@@ -36,6 +40,10 @@
 - **[2025-7-1]** 修改为cmake项目，在项目中新建`build`目录后，使用`cmake ..`后`cmake .. -G "Visual Studio 17 2022" -A x64` 可以生成64位的sln项目，之后使用`cmake --build . --config Release`可以直接编译
 
 # Feature
+
+- **[2025-9-15]** v3.1更新
+
+  ![](./assets/uploadsimage-20251128173928644.png)
 
 - **[2025-9-15]** v3.0更新
 

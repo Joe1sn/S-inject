@@ -1,4 +1,5 @@
 #include "include/window/MainWindow.hpp"
+
 using namespace XInject::constant;
 using namespace XInject::Crypto;
 using namespace XInject::Injector;
@@ -125,15 +126,22 @@ namespace XInject
                 {
                 }
             }
-            // ImGui::Text("pid index: %d", pid);
-            // ImGui::Text("pid      : %d", chosenPid);
 
             if (ImGui::Button("Inject")) // 点击注入
             {
                 MainWindow::doInject();
+                MainWindow::debugWnd = !MainWindow::debugWnd;
             }
 
             ImGui::End();
+            // if (MainWindow::debugWnd)
+            // {
+            //     ImGui::Begin("debug window", &MainWindow::debugWnd);
+            //     ImGui::Text("pid: %d", chosenPid);
+            //     static DWORD64 addr = XInject::Format::getRemotePebVal(chosenPid);
+            //     ImGui::Text("teb: %p", addr);
+            //     ImGui::End();
+            // }
         }
 
         void doInject()
