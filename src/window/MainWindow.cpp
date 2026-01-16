@@ -7,141 +7,138 @@ namespace XInject
 {
     namespace MainWindow
     {
-        void setupUi()
+        bool setupUi()
         {
             bool chooseFile = false;
-            static char filePath[0x1000] = {0};
+            static char filePath[0x1000] = { 0 };
             OPENFILENAMEA ofn;
 
-            ImGuiIO &io = ImGui::GetIO();
+            ImGuiIO& io = ImGui::GetIO();
 
             // 设置下一个窗口的位置和大小，覆盖整个宿主窗口
-            ImGui::SetNextWindowPos(ImVec2(0, 0));
-            ImGui::SetNextWindowSize(io.DisplaySize);
-            ImGui::Begin("X-inject", nullptr, constant::fullWindowFlags);
-            // ImGui::Begin("X-inject", nullptr);
-            ImGui::Text("Method    ");
-            ImGui::SameLine();
-            if (ImGui::Combo("##method", &MainWindow::method, "Remote Thread\0APC Queue\0Reflective\0Context(thread hijack)\0", 4))
-            {
-                type = 0;
-            }
-            // 如果有人开始选择方法
-            // 0. remote thread inject
-            // 1. apc inject
-            // 2. reflect inject
-            // 3. context inject (thread hijack)
-            ImGui::Text("Type         ");
-            ImGui::SameLine();
-            switch (MainWindow::method)
-            {
-            case 0: // remote thread injection
-            case 1: // apc inject   只能注入dll文件和shellcode
-            {
-                ImGui::Combo("##type", &MainWindow::type, "DLL file\0shellcode\0shellcode file\0", 3);
-                break;
-            }
-            case 2: // 反射式注入不能注入shellcode
-            {
-                ImGui::Combo("##type", &MainWindow::type, "DLL file\0url\0", 2);
-                break;
-            }
-            case 3: // 线程劫持只能注入shellcode
-            {
-                ImGui::Combo("##type", &MainWindow::type, "shellcode\0shellcode file\0", 2);
-                break;
-            }
-
-            default:
-                ImGui::Combo("##type", &MainWindow::type, "\0", 0);
-                break;
-            }
-
-            ImGui::Text("Process");
-            ImGui::SameLine();
-
-            // 假设你的状态变量
-            static std::vector<std::string> itemList; // 存储选项的列表
-            if (ImGui::BeginCombo("##process", itemList.empty() ? "choose process" : itemList[pid].c_str()))
-            {
-                std::vector<ProcessInfo> infoList = Injector::listInjectable();
-                // 检测下拉窗口是否刚刚出现（即用户刚刚点开）
-                if (ImGui::IsWindowAppearing())
+            // ImGui::SetNextWindowPos(ImVec2(0, 0));
+            // ImGui::SetNextWindowSize(io.DisplaySize);
+            // ImGui::Begin("X-inject", nullptr, constant::fullWindowFlags);
+            if (MainWindow::mainwndOpen) {
+                ImGui::Begin("X-inject", &MainWindow::mainwndOpen);
+                ImGui::Text("Method    ");
+                ImGui::SameLine();
+                if (ImGui::Combo("##method", &MainWindow::method, "Remote Thread\0APC Queue\0Reflective\0Context(thread hijack)\0", 4))
                 {
-                    itemList.clear(); // 清空原有列表
+                    type = 0;
+                }
+                // 如果有人开始选择方法
+                // 0. remote thread inject
+                // 1. apc inject
+                // 2. reflect inject
+                // 3. context inject (thread hijack)
+                ImGui::Text("Type         ");
+                ImGui::SameLine();
+                switch (MainWindow::method)
+                {
+                case 0: // remote thread injection
+                case 1: // apc inject   只能注入dll文件和shellcode
+                {
+                    ImGui::Combo("##type", &MainWindow::type, "DLL file\0shellcode\0shellcode file\0", 3);
+                    break;
+                }
+                case 2: // 反射式注入不能注入shellcode
+                {
+                    ImGui::Combo("##type", &MainWindow::type, "DLL file\0url\0", 2);
+                    break;
+                }
+                case 3: // 线程劫持只能注入shellcode
+                {
+                    ImGui::Combo("##type", &MainWindow::type, "shellcode\0shellcode file\0", 2);
+                    break;
+                }
+
+                default:
+                    ImGui::Combo("##type", &MainWindow::type, "\0", 0);
+                    break;
+                }
+
+                ImGui::Text("Process");
+                ImGui::SameLine();
+
+                // 假设你的状态变量
+                static std::vector<std::string> itemList; // 存储选项的列表
+                if (ImGui::BeginCombo("##process", itemList.empty() ? "choose process" : itemList[pid].c_str()))
+                {
                     std::vector<ProcessInfo> infoList = Injector::listInjectable();
-                    for (auto info : infoList)
+                    // 检测下拉窗口是否刚刚出现（即用户刚刚点开）
+                    if (ImGui::IsWindowAppearing())
                     {
-                        if (unsigned int(info.pid / 10) == 0)
-                            itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"         " + info.processName));
-                        else if (unsigned int(info.pid / 100) == 0)
-                            itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"        " + info.processName));
-                        else if (unsigned int(info.pid / 100) == 0)
-                            itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"       " + info.processName));
-                        else if (unsigned int(info.pid / 1000) == 0)
-                            itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"      " + info.processName));
-                        else if (unsigned int(info.pid / 10000) == 0)
-                            itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"     " + info.processName));
-                        else if (unsigned int(info.pid / 100000) == 0)
-                            itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"    " + info.processName));
-                        else
-                            itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"   " + info.processName));
+                        itemList.clear(); // 清空原有列表
+                        std::vector<ProcessInfo> infoList = Injector::listInjectable();
+                        for (auto info : infoList)
+                        {
+                            if (unsigned int(info.pid / 10) == 0)
+                                itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"         " + info.processName));
+                            else if (unsigned int(info.pid / 100) == 0)
+                                itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"        " + info.processName));
+                            else if (unsigned int(info.pid / 100) == 0)
+                                itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"       " + info.processName));
+                            else if (unsigned int(info.pid / 1000) == 0)
+                                itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"      " + info.processName));
+                            else if (unsigned int(info.pid / 10000) == 0)
+                                itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"     " + info.processName));
+                            else if (unsigned int(info.pid / 100000) == 0)
+                                itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"    " + info.processName));
+                            else
+                                itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"   " + info.processName));
+                        }
                     }
+
+                    // 渲染下拉项列表
+                    for (int i = 0; i < itemList.size(); ++i)
+                    {
+                        bool isSelected = (pid == i);
+                        if (ImGui::Selectable(itemList[i].c_str(), isSelected))
+                        {
+                            pid = i; // 用户选择了某一项
+                            chosenPid = infoList[i].pid;
+                        }
+                        if (isSelected)
+                        {
+                            ImGui::SetItemDefaultFocus(); // 设置初始焦点
+                        }
+                    }
+                    ImGui::EndCombo();
+                    return true;
                 }
 
-                // 渲染下拉项列表
-                for (int i = 0; i < itemList.size(); ++i)
+                ImGui::Text("Args         ");
+                ImGui::SameLine();
+                ImGui::InputText("##arg", MainWindow::args, constant::maxStrSize);
+                ImGui::SameLine();
+                chooseFile = ImGui::Button("file");
+                if (chooseFile)
                 {
-                    bool isSelected = (pid == i);
-                    if (ImGui::Selectable(itemList[i].c_str(), isSelected))
+                    ZeroMemory(&ofn, sizeof(ofn));
+                    ofn.lStructSize = sizeof(ofn);
+                    ofn.hwndOwner = NULL;
+                    ofn.lpstrFilter = "All Files\0*.*\0";
+                    ofn.lpstrFile = args;
+                    ofn.nMaxFile = MAX_PATH;
+                    ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+                    ofn.lpstrDefExt = "";
+                    if (GetOpenFileNameA(&ofn))
                     {
-                        pid = i; // 用户选择了某一项
-                        chosenPid = infoList[i].pid;
-                    }
-                    if (isSelected)
-                    {
-                        ImGui::SetItemDefaultFocus(); // 设置初始焦点
                     }
                 }
-                ImGui::EndCombo();
-            }
 
-            // TODO: 选择文件按钮
-            ImGui::Text("Args         ");
-            ImGui::SameLine();
-            ImGui::InputText("##arg", MainWindow::args, constant::maxStrSize);
-            ImGui::SameLine();
-            chooseFile = ImGui::Button("file");
-            if (chooseFile)
-            {
-                ZeroMemory(&ofn, sizeof(ofn));
-                ofn.lStructSize = sizeof(ofn);
-                ofn.hwndOwner = NULL;
-                ofn.lpstrFilter = "All Files\0*.*\0";
-                ofn.lpstrFile = args;
-                ofn.nMaxFile = MAX_PATH;
-                ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-                ofn.lpstrDefExt = "";
-                if (GetOpenFileNameA(&ofn))
+                if (ImGui::Button("Inject")) // 点击注入
                 {
+                    MainWindow::doInject();
+                    MainWindow::debugWnd = !MainWindow::debugWnd;
                 }
+
+                ImGui::End();
             }
 
-            if (ImGui::Button("Inject")) // 点击注入
-            {
-                MainWindow::doInject();
-                MainWindow::debugWnd = !MainWindow::debugWnd;
-            }
-
-            ImGui::End();
-            // if (MainWindow::debugWnd)
-            // {
-            //     ImGui::Begin("debug window", &MainWindow::debugWnd);
-            //     ImGui::Text("pid: %d", chosenPid);
-            //     static DWORD64 addr = XInject::Format::getRemotePebVal(chosenPid);
-            //     ImGui::Text("teb: %p", addr);
-            //     ImGui::End();
-            // }
+            else
+                return false;
         }
 
         void doInject()
