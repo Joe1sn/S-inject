@@ -39,8 +39,73 @@ void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Main code
-int main(int, char**)
+int main(int argc, char* argv[])
 {
+    if (argc >= 2) {
+        std::vector<std::string> words = {};
+
+        for (size_t i = 1; i < argc; i++) // 对命令行分词处理，得到参数
+            words.push_back(argv[i]);
+
+        std::string method = "";   // 使用的方法
+        std::string args = "";     // 相关文件的dll url shellcode
+        DWORD pid = 0;             // 进程号
+        std::string procName = ""; // 进程名字
+
+        for (size_t i = 0; i < words.size(); i++)
+        { // 设置参数
+            if (words[i].starts_with("-method"))
+            {
+                method = words[++i];
+            }
+            else if (words[i].starts_with("-args"))
+            {
+                args = words[++i];
+            }
+            else if (words[i].starts_with("-pid"))
+            {
+                pid = std::stoul(words[++i]);
+            }
+            else if (words[i].starts_with("-proc"))
+            {
+                procName = words[++i];
+            }
+        }
+
+        if (!procName.empty())                                       // 进程名字不为空
+            pid = XInject::Injector::getPidByName(procName.c_str()); // 通过进程名字得到pid
+        if (pid == 0)
+        { // pid不能为空
+            std::cout << "No Such Process Can be injected\n";
+            return 0;
+        }
+
+        if (method == "net") // 使用http get请求反射式加载dll
+            XInject::Injector::reflectInject(pid, 1, args);
+        else if (method == "rmtdll")
+            XInject::Injector::remoteThreadInject(pid, 0, args);
+        else if (method == "refdll")
+            XInject::Injector::reflectInject(pid, 0, args);
+        else if (method == "apcdll")
+            XInject::Injector::apcInject(pid, 0, args);
+        else if (method == "rmtsc") // 远程线程注入shellcode
+            XInject::Injector::remoteThreadInject(pid, 1, args);
+        else if (method == "apcsc") // apc队列注入shellcode
+            XInject::Injector::apcInject(pid, 1, args);
+        else if (method == "ctxsc") // 上下文注入(线程劫持)shellcode
+            XInject::Injector::contextInject(pid, 0, args);
+
+        else if (method == "rmtfile") // 上下文注入(线程劫持)shellcode
+            XInject::Injector::remoteThreadInject(pid, 2, args);
+        else if (method == "apcfile") // 上下文注入(线程劫持)shellcode
+            XInject::Injector::apcInject(pid, 2, args);
+        else if (method == "ctxfile") // 上下文注入(线程劫持)shellcode
+            XInject::Injector::contextInject(pid, 1, args);
+        else
+            // Error::error(L"No Such Method");
+            std::cout << "[!] No Such Method\n";
+    }
+    else
     {
         // Make process DPI aware and obtain main monitor scale
         ImGui_ImplWin32_EnableDpiAwareness();
