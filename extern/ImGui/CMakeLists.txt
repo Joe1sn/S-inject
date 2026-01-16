@@ -13,10 +13,10 @@ set(IMGUI_SOURCES
 
 set(IMGUI_INCLUDE
     imconfig.h
-    imgui.h
     imgui_impl_dx11.h
     imgui_impl_win32.h
     imgui_internal.h
+    imgui.h
     imstb_rectpack.h
     imstb_textedit.h
     imstb_truetype.h

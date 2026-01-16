@@ -22,51 +22,41 @@ set(SINJECT_INCLUDE
     include/utils/error.hpp
     include/utils/helper.hpp
     include/utils/query.hpp
-
-    
-
 )
 set(SINJECT_SOURCE
     src/main.cpp
     src/winres.rc
 
     src/window/MainWindow.cpp
-    
+
     src/app/S-Wisper.c
     src/app/injector.cpp
     src/app/network.cpp
     src/app/format.cpp
 
-
     src/utils/crypto.cpp
     src/utils/error.cpp
     src/utils/helper.cpp
-
-    
-    
 )
 
 set(APP_RES src/winres.rc)
 
-if (CMAKE_GENERATOR_PLATFORM STREQUAL "x64")
-    add_library(sw3_asm OBJECT src/app/S-Wisper-asm.x64.asm)
-endif()
+# if(CMAKE_GENERATOR_PLATFORM STREQUAL "x64")
+add_library(sw3_asm OBJECT src/app/S-Wisper-asm.x64.asm)
+
+# endif()
 
 # Specify MSVC UTF-8 encoding
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+
 # make sure link .lib
 link_libraries("wininet.lib")
 link_libraries("d3d11.lib")
 link_libraries("Crypt32.lib")
 
-
-add_executable(${PROJECT_NAME} WIN32 ${SINJECT_INCLUDE} ${SINJECT_SOURCE})
+add_executable(${PROJECT_NAME} ${SINJECT_INCLUDE} ${SINJECT_SOURCE})
 target_compile_definitions(${PROJECT_NAME} PRIVATE UNICODE _UNICODE)
-if (CMAKE_GENERATOR_PLATFORM STREQUAL "win32")
-    target_link_libraries(${PROJECT_NAME} PRIVATE wininet d3d11 Crypt32 imgui)
 
-elseif (CMAKE_GENERATOR_PLATFORM STREQUAL "x64")
-    target_link_libraries(${PROJECT_NAME} PRIVATE wininet d3d11 Crypt32 imgui $<TARGET_OBJECTS:sw3_asm>)
-endif()
-
+# target_link_libraries(${PROJECT_NAME} PRIVATE wininet d3d11 Crypt32 imgui)
+target_link_libraries(${PROJECT_NAME} PRIVATE wininet d3d11 Crypt32 imgui $<TARGET_OBJECTS:sw3_asm>)

@@ -20,13 +20,16 @@
 
 using namespace XInject::config;
 using namespace XInject::Injector;
+
+#define IDI_MAIN_ICON 101
+
 // Data
-static ID3D11Device *g_pd3dDevice = nullptr;
-static ID3D11DeviceContext *g_pd3dDeviceContext = nullptr;
-static IDXGISwapChain *g_pSwapChain = nullptr;
+static ID3D11Device* g_pd3dDevice = nullptr;
+static ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
+static IDXGISwapChain* g_pSwapChain = nullptr;
 static bool g_SwapChainOccluded = false;
 static UINT g_ResizeWidth = 0, g_ResizeHeight = 0;
-static ID3D11RenderTargetView *g_mainRenderTargetView = nullptr;
+static ID3D11RenderTargetView* g_mainRenderTargetView = nullptr;
 
 // Forward declarations of helper functions
 bool CreateDeviceD3D(HWND hWnd);
@@ -36,132 +39,24 @@ void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Main code
-int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmdShow)
+int main(int, char**)
 {
-    std::string commandLine = lpCmd;
-    if (!commandLine.empty())
-        XInject::config::useGui = false;
-
-    if (!XInject::config::useGui)
-    { // 不需要GUI界面
-        Error::error(L"TEST");
-
-        std::vector<std::string> words = {};
-        std::string word = "";
-
-        bool intoRef = false;      // 是否处于 `"` 中
-        for (auto c : commandLine) // 对命令行分词处理，得到参数
-        {
-            if (c == ' ')
-            { // 下一个参数
-                if (!intoRef)
-                { // 不在`"`中，开始的到下一个参数
-                    if (!word.empty())
-                    {
-                        words.push_back(word);
-                        word.clear();
-                    }
-                }
-                else
-                {
-                    word.append(1, c);
-                }
-                continue;
-            }
-            else if (c == '\n')
-            { // 命令行结束
-                if (!word.empty())
-                {
-                    words.push_back(word);
-                    word.clear();
-                }
-                break;
-            }
-            else if (c == '"')
-            { // 设置`"`状态
-                intoRef = !intoRef;
-            }
-            else
-                word.append(1, c);
-        }
-        words.push_back(word);
-        word.clear();
-
-        std::string method = "";   // 使用的方法
-        std::string args = "";     // 相关文件的dll url shellcode
-        DWORD pid = 0;             // 进程号
-        std::string procName = ""; // 进程名字
-
-        for (size_t i = 0; i < words.size(); i++)
-        { // 设置参数
-            if (words[i].starts_with("-method"))
-            {
-                method = words[++i];
-            }
-            else if (words[i].starts_with("-args"))
-            {
-                args = words[++i];
-            }
-            else if (words[i].starts_with("-pid"))
-            {
-                pid = std::stoul(words[++i]);
-            }
-            else if (words[i].starts_with("-proc"))
-            {
-                procName = words[++i];
-            }
-        }
-
-        if (!procName.empty())                                       // 进程名字不为空
-            pid = XInject::Injector::getPidByName(procName.c_str()); // 通过进程名字得到pid
-        if (pid == 0)
-        { // pid不能为空
-            Error::error(L"No Such Process Can be injected");
-            return 0;
-        }
-
-        if (method == "net") // 使用http get请求反射式加载dll
-            XInject::Injector::reflectInject(pid, 1, args);
-        else if (method == "rmtdll")
-            XInject::Injector::remoteThreadInject(pid, 0, args);
-        else if (method == "refdll")
-            XInject::Injector::reflectInject(pid, 0, args);
-        else if (method == "apcdll")
-            XInject::Injector::apcInject(pid, 0, args);
-        else if (method == "rmtsc") // 远程线程注入shellcode
-            XInject::Injector::remoteThreadInject(pid, 1, args);
-        else if (method == "apcsc") // apc队列注入shellcode
-            XInject::Injector::apcInject(pid, 1, args);
-        else if (method == "ctxsc") // 上下文注入(线程劫持)shellcode
-            XInject::Injector::contextInject(pid, 0, args);
-
-        else if (method == "rmtfile") // 上下文注入(线程劫持)shellcode
-            XInject::Injector::remoteThreadInject(pid, 2, args);
-        else if (method == "apcfile") // 上下文注入(线程劫持)shellcode
-            XInject::Injector::apcInject(pid, 2, args);
-        else if (method == "ctxfile") // 上下文注入(线程劫持)shellcode
-            XInject::Injector::contextInject(pid, 1, args);
-        else
-            Error::error(L"No Such Method");
-    }
-    else
     {
         // Make process DPI aware and obtain main monitor scale
         ImGui_ImplWin32_EnableDpiAwareness();
-        float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY));
+        float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY));
 
         // Create application window
-        WNDCLASSEXW wc = {sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"X-inject", nullptr};
+        WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"X-inject", nullptr };
         wc.cbSize = sizeof(WNDCLASSEX);
-        wc.hIcon = LoadIcon(instance, MAKEINTRESOURCE(IDI_ICON1));
-        wc.hIconSm = LoadIcon(instance, MAKEINTRESOURCE(IDI_ICON1));
+        wc.hIcon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_ICON1));
+        wc.hIconSm = LoadIcon(NULL, MAKEINTRESOURCE(IDI_ICON1));
         // wc.hInstance = instance;
         wc.style = CS_HREDRAW | CS_VREDRAW;
         ::RegisterClassExW(&wc);
         HWND hwnd = CreateWindowExW(0, L"X-inject", L"X-inject",
-                                    WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT,
-                                    700, 350, NULL, NULL, wc.hInstance, NULL); // 创建windows窗口
-
+            WS_OVERLAPPEDWINDOW & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX, CW_USEDEFAULT, CW_USEDEFAULT,
+            700, 350, NULL, NULL, wc.hInstance, NULL); // 创建windows窗口
         // Initialize Direct3D
         if (!CreateDeviceD3D(hwnd))
         {
@@ -171,42 +66,75 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
         }
 
         // Show the window
-        ::ShowWindow(hwnd, SW_SHOWDEFAULT);
+        ::ShowWindow(hwnd, SW_HIDE);
         ::UpdateWindow(hwnd);
 
         // Setup Dear ImGui context
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
-        ImGuiIO &io = ImGui::GetIO();
+        ImGuiIO& io = ImGui::GetIO();
         (void)io;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
+        io.ConfigViewportsNoAutoMerge = true;
+        // io.ConfigViewportsNoTaskBarIcon = true;
+        // io.ConfigDockingAlwaysTabBar = true;
+        // io.ConfigDockingTransparentPayload = true;
 
         // Setup Dear ImGui style
         // ImGui::StyleColorsDark();
         ImGui::StyleColorsLight();
 
         // Setup scaling
-        ImGuiStyle &style = ImGui::GetStyle();
-        style.ScaleAllSizes(main_scale); // Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
-        style.FontScaleDpi = main_scale; // Set initial font scale. (using io.ConfigDpiScaleFonts=true makes this unnecessary. We leave both here for documentation purpose)
+        ImGuiStyle& style = ImGui::GetStyle();
+        style.ScaleAllSizes(main_scale);   // Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
+        style.FontScaleDpi = main_scale;   // Set initial font scale. (using io.ConfigDpiScaleFonts=true makes this unnecessary. We leave both here for documentation purpose)
+        io.ConfigDpiScaleFonts = true;     // [Experimental] Automatically overwrite style.FontScaleDpi in Begin() when Monitor DPI changes. This will scale fonts but _NOT_ scale sizes/padding for now.
+        io.ConfigDpiScaleViewports = true; // [Experimental] Scale Dear ImGui and Platform Windows when Monitor DPI changes.
+
+        // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            style.WindowRounding = 0.0f;
+            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+        }
 
         // Setup Platform/Renderer backends
         ImGui_ImplWin32_Init(hwnd);
         ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
 
         // Load Fonts
-        HRSRC hRes = FindResource(instance, MAKEINTRESOURCE(IDR_FONT1), RT_RCDATA);
+        // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
+        // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
+        // - If the file cannot be loaded, the function will return a nullptr. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
+        // - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
+        // - Read 'docs/FONTS.md' for more instructions and details. If you like the default font but want it to scale better, consider using the 'ProggyVector' from the same author!
+        // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
+        // style.FontSizeBase = 20.0f;
+        // io.Fonts->AddFontDefault();
+        // io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf");
+        // io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf");
+        // io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf");
+        // io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf");
+        // ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf");
+        // IM_ASSERT(font != nullptr);
+        // Load Fonts
+        HRSRC hRes = FindResource(wc.hInstance, MAKEINTRESOURCE(IDR_FONT1), RT_RCDATA);
         if (hRes)
         {
-            HGLOBAL hMem = LoadResource(instance, hRes);
-            void *pData = LockResource(hMem);
-            DWORD size = SizeofResource(instance, hRes);
+            HGLOBAL hMem = LoadResource(wc.hInstance, hRes);
+            void* pData = LockResource(hMem);
+            DWORD size = SizeofResource(wc.hInstance, hRes);
 
             // DWORD nFonts = 0;
             // AddFontMemResourceEx(pData, size, NULL, &nFonts);
             io.Fonts->AddFontFromMemoryTTF(pData, size, 16, nullptr, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
         }
+        // Our state
+        bool isWndFinish = false;
+        ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
         // Main loop
         bool done = false;
@@ -248,19 +176,25 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
             ImGui::NewFrame();
 
             ////////////  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS
-
             {
-                XInject::MainWindow::setupUi();
+                if (!XInject::MainWindow::setupUi())
+                    done = true;
             }
-
             ////////////  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS  WINDOWS
 
             // Rendering
             ImGui::Render();
-            const float clear_color_with_alpha[4] = {1, 1, 1, 1};
+            const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
             g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, nullptr);
             g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
             ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
+            // Update and Render additional Platform Windows
+            if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+            {
+                ImGui::UpdatePlatformWindows();
+                ImGui::RenderPlatformWindowsDefault();
+            }
 
             // Present
             HRESULT hr = g_pSwapChain->Present(1, 0); // Present with vsync
@@ -277,14 +211,16 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE pInstance, LPSTR lpCmd, int cmd
         ::DestroyWindow(hwnd);
         ::UnregisterClassW(wc.lpszClassName, wc.hInstance);
     }
+
+
     return 0;
 }
 
 // Helper functions
-
 bool CreateDeviceD3D(HWND hWnd)
 {
     // Setup swap chain
+    // This is a basic setup. Optimally could use e.g. DXGI_SWAP_EFFECT_FLIP_DISCARD and handle fullscreen mode differently. See #8979 for suggestions.
     DXGI_SWAP_CHAIN_DESC sd;
     ZeroMemory(&sd, sizeof(sd));
     sd.BufferCount = 2;
@@ -314,6 +250,16 @@ bool CreateDeviceD3D(HWND hWnd)
     if (res != S_OK)
         return false;
 
+    // Disable DXGI's default Alt+Enter fullscreen behavior.
+    // - You are free to leave this enabled, but it will not work properly with multiple viewports.
+    // - This must be done for all windows associated to the device. Our DX11 backend does this automatically for secondary viewports that it creates.
+    IDXGIFactory* pSwapChainFactory;
+    if (SUCCEEDED(g_pSwapChain->GetParent(IID_PPV_ARGS(&pSwapChainFactory))))
+    {
+        pSwapChainFactory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
+        pSwapChainFactory->Release();
+    }
+
     CreateRenderTarget();
     return true;
 }
@@ -340,7 +286,7 @@ void CleanupDeviceD3D()
 
 void CreateRenderTarget()
 {
-    ID3D11Texture2D *pBackBuffer;
+    ID3D11Texture2D* pBackBuffer;
     g_pSwapChain->GetBuffer(0, IID_PPV_ARGS(&pBackBuffer));
     g_pd3dDevice->CreateRenderTargetView(pBackBuffer, nullptr, &g_mainRenderTargetView);
     pBackBuffer->Release();

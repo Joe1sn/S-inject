@@ -19,13 +19,14 @@ namespace XInject
 {
     namespace MainWindow
     {
+        inline bool mainwndOpen = true;
         inline bool debugWnd = false;
         inline int method;
         inline int type;
         inline int pid;
         inline DWORD chosenPid;
         static char args[constant::maxStrSize] = {};
-        void setupUi();
+        bool setupUi();
         void doInject();
     } // namespace MainWindow
 
