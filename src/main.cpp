@@ -1,5 +1,6 @@
-// application for DirectX 11
+#pragma comment(linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
 
+// application for DirectX 11
 #include <d3d11.h>
 #include <tchar.h>
 #include <windows.h>
@@ -20,8 +21,6 @@
 
 using namespace XInject::config;
 using namespace XInject::Injector;
-
-#define IDI_MAIN_ICON 101
 
 // Data
 static ID3D11Device* g_pd3dDevice = nullptr;

@@ -15,18 +15,12 @@ namespace XInject
 
             ImGuiIO& io = ImGui::GetIO();
 
-            // 设置下一个窗口的位置和大小，覆盖整个宿主窗口
-            // ImGui::SetNextWindowPos(ImVec2(0, 0));
-            // ImGui::SetNextWindowSize(io.DisplaySize);
-            // ImGui::Begin("X-inject", nullptr, constant::fullWindowFlags);
-            if (MainWindow::mainwndOpen) {
+            if (MainWindow::mainwndOpen) {  //主窗口没有退出
                 ImGui::Begin("X-inject", &MainWindow::mainwndOpen);
                 ImGui::Text("Method    ");
                 ImGui::SameLine();
                 if (ImGui::Combo("##method", &MainWindow::method, "Remote Thread\0APC Queue\0Reflective\0Context(thread hijack)\0", 4))
-                {
                     type = 0;
-                }
                 // 如果有人开始选择方法
                 // 0. remote thread inject
                 // 1. apc inject
@@ -105,7 +99,7 @@ namespace XInject
                         }
                     }
                     ImGui::EndCombo();
-                    return true;
+                    // return true;
                 }
 
                 ImGui::Text("Args         ");
@@ -123,9 +117,7 @@ namespace XInject
                     ofn.nMaxFile = MAX_PATH;
                     ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
                     ofn.lpstrDefExt = "";
-                    if (GetOpenFileNameA(&ofn))
-                    {
-                    }
+                    if (GetOpenFileNameA(&ofn)) {}
                 }
 
                 if (ImGui::Button("Inject")) // 点击注入
@@ -135,6 +127,7 @@ namespace XInject
                 }
 
                 ImGui::End();
+                return true;
             }
 
             else
