@@ -1,4 +1,4 @@
-![](./assets/joe1sn-S_inject-green.svg+xml)  ![](./assets/windows-C++-yellow.svg+xml)
+![](./assets/joe1sn-S_inject-green.svg)  ![](./assets/windows-C++-yellow.svg)
 
 <h1><p align="center">S-inject</p></h1>
 
