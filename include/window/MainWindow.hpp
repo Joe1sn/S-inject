@@ -22,6 +22,7 @@ namespace XInject
         inline bool mainwndOpen = true;
         inline bool debugWnd = false;
         inline int method;
+        inline int poolpartyMethod; //max = 7
         inline int type;
         inline int pid;
         inline DWORD chosenPid;

@@ -66,7 +66,7 @@ namespace XInject
             }
             PMySYSTEM_PROCESS_INFORMATION processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(buffer.data());
             for (;
-                 processInfo;)
+                processInfo;)
             {
                 hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, reinterpret_cast<DWORD>(processInfo->ProcessId));
                 if (hProcess == NULL || hProcess == INVALID_HANDLE_VALUE)
@@ -82,12 +82,12 @@ namespace XInject
 #ifdef _WIN64
                     if (!bWow64)
                         procInfo.push_back(
-                            ProcessInfo{reinterpret_cast<DWORD>(processInfo->ProcessId), processInfo->ImageName.Buffer});
+                            ProcessInfo{ reinterpret_cast<DWORD>(processInfo->ProcessId), processInfo->ImageName.Buffer });
 
 #elif _WIN32
                     if (bWow64)
                         procInfo.push_back(
-                            ProcessInfo{reinterpret_cast<DWORD>(processInfo->ProcessId), processInfo->ImageName.Buffer});
+                            ProcessInfo{ reinterpret_cast<DWORD>(processInfo->ProcessId), processInfo->ImageName.Buffer });
 #else
                     Error::error(L"Only Support i386 & amd64 arch");
 #endif
@@ -129,7 +129,7 @@ namespace XInject
             int len = MultiByteToWideChar(CP_UTF8, 0, procName, -1, nullptr, 0);
             if (len == 0)
                 return len;
-            wchar_t *wideStrConverted = new wchar_t[len];
+            wchar_t* wideStrConverted = new wchar_t[len];
             MultiByteToWideChar(CP_UTF8, 0, procName, -1, wideStrConverted, len);
 
             for (auto l : list)
@@ -429,7 +429,7 @@ namespace XInject
         };
         namespace reflector
         {
-            DWORD getOffset(HANDLE Image, CHAR *FuncName)
+            DWORD getOffset(HANDLE Image, CHAR* FuncName)
             {
                 UINT_PTR uiBaseAddress = 0;
                 UINT_PTR uiExportDir = 0;
@@ -450,7 +450,7 @@ namespace XInject
                 dwCounter = ((PIMAGE_EXPORT_DIRECTORY)uiExportDir)->NumberOfNames;
                 while (dwCounter--)
                 {
-                    char *cpExportedFunctionName = (char *)(uiBaseAddress + rva2Offset(DEREF_32(uiNameArray), uiBaseAddress));
+                    char* cpExportedFunctionName = (char*)(uiBaseAddress + rva2Offset(DEREF_32(uiNameArray), uiBaseAddress));
 
                     if (strstr(cpExportedFunctionName, FuncName) != NULL)
                     {
@@ -729,7 +729,7 @@ namespace XInject
             }
 
             DWORD dwRet = 0;
-            CONTEXT context = {0};
+            CONTEXT context = { 0 };
             context.ContextFlags = CONTEXT_CONTROL;
 
             PMySYSTEM_PROCESS_INFORMATION processInfo = reinterpret_cast<PMySYSTEM_PROCESS_INFORMATION>(buffer.data());
@@ -808,6 +808,91 @@ namespace XInject
             return true;
         }
 
-    }
+        bool poolPartyInject(DWORD pid, int mode, int method, std::string args) {
+            //       DLL file  url shellcode shellcode_file 
+            //mode = 0         1   2         3 
+            //       shellcode shellcode_file 
+            //mode = 0         1
+            bool bRet = true;
+            SIZE_T dwAllocSize = args.size() + 1;
+            SIZE_T dwWriteSize = 0;
+            LPVOID pAddress = nullptr;
+            LPVOID pBootAddress = nullptr;
+            // HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+            std::string fileContent = "";
 
+            // if (hProcess == INVALID_HANDLE_VALUE)
+            // {
+            //     Error::error(L"Invalid Process Handle");
+            //     return false;
+            // }
+
+            // FIXME: need SeDebug Privillege
+            // if (mode == 0 && !isFileExists(args))
+            // {
+            //     Error::error(L"No such file");
+            //     CloseHandle(hProcess);
+            //     return false;
+            // }
+            // if (mode == 0 || mode == 1)
+            // {
+            //     if (mode == 0)
+            //         fileContent = XInject::ReadFileToString(args);
+            //     else if (mode == 1)
+            //         fileContent = net::downloadFile(args);
+            //     else
+            //     {
+            //         Error::error(L"Program Control Flow Changed!!!\nFatal error!!!");
+            //         exit(-1);
+            //     }
+            //     if (fileContent == "")
+            //     {
+            //         Error::error(L"Invalid Dll PE format");
+            //         return false;
+            //     }
+
+            //     dwAllocSize = fileContent.size() + 1;
+            //     pAddress = VirtualAllocEx(hProcess, NULL, dwAllocSize, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+            //     bRet = ::WriteProcessMemory(hProcess, pAddress, fileContent.c_str(), fileContent.length(), &dwWriteSize);
+            //     if (!bRet)
+            //     {
+            //         Error::error(L"Write Dll to Process Failed");
+            //         VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+            //         CloseHandle(hProcess);
+            //         return false;
+            //     }
+            //     pBootAddress = VirtualAllocEx(hProcess, NULL, XInject::Injector::shellcodeSize + 0x10, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+            //     for (size_t i = 0; i < 8; i++)
+            //         bootshellcode[XInject::Injector::Offset + i] = *(PCHAR)((DWORD64)(&pAddress) + i);
+
+            //     bRet = ::WriteProcessMemory(hProcess, pBootAddress, bootshellcode, XInject::Injector::shellcodeSize, &dwWriteSize);
+            //     if (!bRet)
+            //     {
+            //         Error::error(L"Write Shellcode to Process Failed");
+            //         VirtualFreeEx(hProcess, pBootAddress, dwAllocSize, MEM_COMMIT);
+            //         CloseHandle(hProcess);
+            //         return false;
+            //     }
+            //     const auto Injector = PoolPartyFactory(method, pid, bootshellcode, shellcodeSize);
+            //     Injector->Inject();
+            //     return true;
+            // }
+
+            if (mode == 0) {   //shellcode
+                std::string decShellcode = Crypto::Base64Decode(args);
+                const auto Injector = PoolPartyFactory(method, pid, (unsigned char*)(decShellcode.c_str()), decShellcode.length());
+                Injector->Inject();
+                return true;
+
+            }
+            else if (mode == 1) {   //shellcode_file
+                std::string base64Shellcode = XInject::ReadFileToString(args);
+                std::string decShellcode = Crypto::Base64Decode(base64Shellcode);
+                const auto Injector = PoolPartyFactory(method, pid, (unsigned char*)(decShellcode.c_str()), decShellcode.length());
+                Injector->Inject();
+                return true;
+            }
+            return false;
+        }
+    }
 } // namespace XInject

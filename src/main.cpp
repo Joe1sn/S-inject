@@ -1,4 +1,4 @@
-#pragma comment(linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
+// #pragma comment(linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
 
 // application for DirectX 11
 #include <d3d11.h>
@@ -16,6 +16,8 @@
 #include "include/window/resources.h"
 #include "include/app/config.hpp"
 #include "include/utils/error.hpp"
+
+#include "include/app/poolparty/PoolParty.hpp"
 
 #define IDI_MAIN_ICON 101
 
@@ -40,6 +42,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 // Main code
 int main(int argc, char* argv[])
 {
+    // const auto inject = PoolPartyFactory(0, 41636, XInject::Injector::g_Shellcode, XInject::Injector::g_szShellcodeSize);
+    // inject->Inject();
+    // return 0;
+    // w_RtlAdjustPrivilege(SeDebugPrivilege, TRUE, FALSE);
     if (argc >= 2) {
         std::vector<std::string> words = {};
 
