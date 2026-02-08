@@ -25,7 +25,7 @@
 
 # Update
 
-- **[2026-2-8]** 测试小功能，新增PoolParty注入，**注意：**目前只提供shellcode注入且并不能保证稳定性，测试了使用Reflective Inject的Shellcode尝试注入dll，但是需要SeDebug权限而且必须先让目标进程处于调试状态（例如使用x64dbg附加后脱离），所以该版本代码暂时不提供dll注入，也无法保证shellcode一定能够注入。该部分使用：https://github.com/SafeBreach-Labs/PoolParty 项目进行改造。
+- **[2026-2-8]** 测试小功能，新增PoolParty注入，**注意：** 二进制Release暂不包含该部分更新，请自行编译。目前只提供shellcode注入且并不能保证稳定性，测试了使用Reflective Inject的Shellcode尝试注入dll，但是需要SeDebug权限而且必须先让目标进程处于调试状态（例如使用x64dbg附加后脱离），所以该版本代码暂时不提供dll注入，也无法保证shellcode一定能够注入。该部分使用：https://github.com/SafeBreach-Labs/PoolParty 项目进行改造。
 
 - **[2026-1-19]** 小更新，移除双击程序出现的黑框，修复了下拉列表出错的bug.
 
