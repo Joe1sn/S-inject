@@ -22,6 +22,14 @@ set(SINJECT_INCLUDE
     include/utils/error.hpp
     include/utils/helper.hpp
     include/utils/query.hpp
+
+    include/app/poolparty/WorkerFactory.hpp 
+    include/app/poolparty/HandleHijacker.hpp 
+    include/app/poolparty/Misc.hpp 
+    include/app/poolparty/Native.hpp 
+    include/app/poolparty/PoolParty.hpp 
+    include/app/poolparty/ThreadPool.hpp 
+    include/app/poolparty/WinApi.hpp
 )
 set(SINJECT_SOURCE
     src/main.cpp
@@ -37,6 +45,15 @@ set(SINJECT_SOURCE
     src/utils/crypto.cpp
     src/utils/error.cpp
     src/utils/helper.cpp
+
+    
+    src/app/poolparty/WorkerFactory.cpp 
+    src/app/poolparty/HandleHijacker.cpp 
+    src/app/poolparty/Misc.cpp 
+    src/app/poolparty/Native.cpp 
+    src/app/poolparty/PoolParty.cpp 
+    src/app/poolparty/ThreadPool.cpp 
+    src/app/poolparty/WinApi.cpp
 )
 
 set(APP_RES src/winres.rc)

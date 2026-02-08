@@ -15,44 +15,68 @@ namespace XInject
 
             ImGuiIO& io = ImGui::GetIO();
 
-            if (MainWindow::mainwndOpen) {  //主窗口没有退出
-                ImGui::Begin("X-inject", &MainWindow::mainwndOpen);
-                ImGui::Text("Method    ");
+            if (mainwndOpen) {  //主窗口没有退出
+                ImGui::Begin("X-inject", &mainwndOpen);
+                ImGui::Text("Method       ");
                 ImGui::SameLine();
-                if (ImGui::Combo("##method", &MainWindow::method, "Remote Thread\0APC Queue\0Reflective\0Context(thread hijack)\0", 4))
+                if (ImGui::Combo("##method", &method, \
+                    "Remote Thread\0"
+                    "APC Queue\0"
+                    "Reflective\0"
+                    "Context(thread hijack)\0"
+                    "Poolparty\0", 5))
                     type = 0;
+                if (method == 4) {
+                    ImGui::Text("PoolParty");
+                    ImGui::SameLine();
+                    ImGui::Combo("##poolparty_type", &poolpartyMethod, \
+                        "WorkerFactoryStartRoutineOverwrite\0"
+                        "RemoteTpWorkInsertion\0"
+                        "RemoteTpWaitInsertion\0"
+                        "RemoteTpIoInsertion\0"
+                        "RemoteTpAlpcInsertion\0"
+                        "RemoteTpJobInsertion\0"
+                        "RemoteTpDirectInsertion\0"
+                        "RemoteTpTimerInsertion\0", 5);
+                }
                 // 如果有人开始选择方法
                 // 0. remote thread inject
                 // 1. apc inject
                 // 2. reflect inject
                 // 3. context inject (thread hijack)
-                ImGui::Text("Type         ");
+                ImGui::Text("Type            ");
                 ImGui::SameLine();
-                switch (MainWindow::method)
+                switch (method)
                 {
                 case 0: // remote thread injection
                 case 1: // apc inject   只能注入dll文件和shellcode
                 {
-                    ImGui::Combo("##type", &MainWindow::type, "DLL file\0shellcode\0shellcode file\0", 3);
+                    ImGui::Combo("##type", &type, "DLL file\0shellcode\0shellcode file\0", 3);
                     break;
                 }
                 case 2: // 反射式注入不能注入shellcode
                 {
-                    ImGui::Combo("##type", &MainWindow::type, "DLL file\0url\0", 2);
+                    ImGui::Combo("##type", &type, "DLL file\0url\0", 2);
                     break;
                 }
                 case 3: // 线程劫持只能注入shellcode
                 {
-                    ImGui::Combo("##type", &MainWindow::type, "shellcode\0shellcode file\0", 2);
+                    ImGui::Combo("##type", &type, "shellcode\0shellcode file\0", 2);
+                    break;
+                }
+                case 4:
+                {
+                    // ImGui::Combo("##type", &type, "DLL file\0url\0shellcode\0shellcode file\0", 4);
+                    ImGui::Combo("##type", &type, "shellcode\0shellcode file\0", 2);
                     break;
                 }
 
                 default:
-                    ImGui::Combo("##type", &MainWindow::type, "\0", 0);
+                    ImGui::Combo("##type", &type, "\0", 0);
                     break;
                 }
 
-                ImGui::Text("Process");
+                ImGui::Text("Process   ");
                 ImGui::SameLine();
 
                 // 假设你的状态变量
@@ -102,9 +126,9 @@ namespace XInject
                     // return true;
                 }
 
-                ImGui::Text("Args         ");
+                ImGui::Text("Args            ");
                 ImGui::SameLine();
-                ImGui::InputText("##arg", MainWindow::args, constant::maxStrSize);
+                ImGui::InputText("##arg", args, constant::maxStrSize);
                 ImGui::SameLine();
                 chooseFile = ImGui::Button("file");
                 if (chooseFile)
@@ -123,7 +147,6 @@ namespace XInject
                 if (ImGui::Button("Inject")) // 点击注入
                 {
                     MainWindow::doInject();
-                    MainWindow::debugWnd = !MainWindow::debugWnd;
                 }
 
                 ImGui::End();
@@ -150,6 +173,10 @@ namespace XInject
             case 3:
                 Injector::contextInject(chosenPid, type, args);
                 break;
+            case 4: {
+                Injector::poolPartyInject(chosenPid, type, poolpartyMethod, args);
+                break;
+            }
 
             default:
                 break;
