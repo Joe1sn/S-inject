@@ -38,6 +38,8 @@ namespace XInject
                         "RemoteTpJobInsertion\0"
                         "RemoteTpDirectInsertion\0"
                         "RemoteTpTimerInsertion\0", 5);
+                    ImGui::SameLine();
+                    ImGui::Checkbox("SeDebug", &needSeDebug);
                 }
                 // 如果有人开始选择方法
                 // 0. remote thread inject
@@ -66,8 +68,8 @@ namespace XInject
                 }
                 case 4:
                 {
-                    // ImGui::Combo("##type", &type, "DLL file\0url\0shellcode\0shellcode file\0", 4);
-                    ImGui::Combo("##type", &type, "shellcode\0shellcode file\0", 2);
+                    ImGui::Combo("##type", &type, "DLL file\0url\0shellcode\0shellcode file\0", 4);
+                    // ImGui::Combo("##type", &type, "shellcode\0shellcode file\0", 2);
                     break;
                 }
 
@@ -174,7 +176,7 @@ namespace XInject
                 Injector::contextInject(chosenPid, type, args);
                 break;
             case 4: {
-                Injector::poolPartyInject(chosenPid, type, poolpartyMethod, args);
+                Injector::poolPartyInject(chosenPid, type, poolpartyMethod, args, needSeDebug);
                 break;
             }
 

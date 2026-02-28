@@ -23,6 +23,7 @@ namespace XInject
         inline bool debugWnd = false;
         inline int method;
         inline int poolpartyMethod; //max = 7
+        inline bool needSeDebug;
         inline int type;
         inline int pid;
         inline DWORD chosenPid;
