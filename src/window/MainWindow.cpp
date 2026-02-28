@@ -68,8 +68,8 @@ namespace XInject
                 }
                 case 4:
                 {
-                    ImGui::Combo("##type", &type, "DLL file\0url\0shellcode\0shellcode file\0", 4);
-                    // ImGui::Combo("##type", &type, "shellcode\0shellcode file\0", 2);
+                    // ImGui::Combo("##type", &type, "DLL file\0url\0shellcode\0shellcode file\0", 4);
+                    ImGui::Combo("##type", &type, "shellcode\0shellcode file\0", 2);
                     break;
                 }
 
