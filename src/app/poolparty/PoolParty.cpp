@@ -274,17 +274,17 @@ void RemoteTpAlpcInsertion::SetupExecution() const
 	LARGE_INTEGER liTimeout{ 0 };
 	liTimeout.QuadPart = -10000000;
 
-	w_NtAlpcConnectPort(
-		&usAlpcPortName,
-		&AlpcClientObjectAttributes,
-		&AlpcPortAttributes,
-		0x20000,
-		nullptr,
-		(PPORT_MESSAGE)&ClientAlpcPortMessage,
-		&szClientAlpcPortMessage,
-		nullptr,
-		nullptr,
-		&liTimeout);
+	// w_NtAlpcConnectPort(
+	// 	&usAlpcPortName,
+	// 	&AlpcClientObjectAttributes,
+	// 	&AlpcPortAttributes,
+	// 	0x20000,
+	// 	nullptr,
+	// 	(PPORT_MESSAGE)&ClientAlpcPortMessage,
+	// 	&szClientAlpcPortMessage,
+	// 	nullptr,
+	// 	nullptr,
+	// 	&liTimeout);
 	std::cout << "Connected to ALPC port `%s` to queue a packet to the IO completion port of the target process worker facto" << g_WideString_Converter.to_bytes(POOL_PARTY_ALPC_PORT_NAME) << std::endl;
 }
 
