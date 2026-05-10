@@ -183,7 +183,7 @@ namespace XInject
                 if (!bRet)
                 {
                     Error::error(L"Write Process Failed");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -202,7 +202,7 @@ namespace XInject
                 if (!bRet)
                 {
                     Error::error(L"Write Process Failed");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -217,7 +217,7 @@ namespace XInject
                 if (!bRet)
                 {
                     Error::error(L"Write Process Failed");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -239,7 +239,7 @@ namespace XInject
                 if (hmodDLL == INVALID_HANDLE_VALUE || hmodDLL == NULL)
                 {
                     Error::error(L"Failed Loadlibrary kernel32");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -248,7 +248,7 @@ namespace XInject
                 if (LoadLibraryBase == nullptr)
                 {
                     Error::error(L"No Such Function in Library");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -259,9 +259,10 @@ namespace XInject
                 if (hRemoteProcess == INVALID_HANDLE_VALUE || hRemoteProcess == NULL || status != STATUS_SUCCESS)
                 {
                     Error::error(L"Create Remote Thread Failed!");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     FreeModule(hmodDLL);
+                    return false;
                 }
 #else
 #ifdef _WIN32
@@ -269,7 +270,7 @@ namespace XInject
                 if (hRemoteProcess == INVALID_HANDLE_VALUE || hRemoteProcess == NULL)
                 {
                     Error::error(L"Create Remote Thread Failed!");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     FreeModule(hmodDLL);
                     return false;
@@ -278,7 +279,7 @@ namespace XInject
 #endif // _WIN64
 
                 WaitForSingleObject(hRemoteProcess, 500);
-                VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                 CloseHandle(hProcess);
                 FreeModule(hmodDLL);
             }
@@ -290,8 +291,9 @@ namespace XInject
                 if (hRemoteProcess == INVALID_HANDLE_VALUE || hRemoteProcess == NULL || status != STATUS_SUCCESS)
                 {
                     Error::error(L"Create Remote Thread Failed!");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
+                    return false;
                 }
 #else
 #ifdef _WIN32
@@ -299,7 +301,7 @@ namespace XInject
                 if (hRemoteProcess == INVALID_HANDLE_VALUE || hRemoteProcess == NULL)
                 {
                     Error::error(L"Create Remote Thread Failed!");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -307,7 +309,7 @@ namespace XInject
 #endif // _WIN64
 
                 WaitForSingleObject(hRemoteProcess, INFINITE);
-                VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                 CloseHandle(hProcess);
             }
 
@@ -367,7 +369,7 @@ namespace XInject
                 if (!bRet)
                 {
                     Error::error(L"Write Dll to Process Failed");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -379,7 +381,7 @@ namespace XInject
                 if (!bRet)
                 {
                     Error::error(L"Write Shellcode to Process Failed");
-                    VirtualFreeEx(hProcess, pBootAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pBootAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -393,7 +395,7 @@ namespace XInject
                 if (hThread == INVALID_HANDLE_VALUE || hThread == NULL || status != STATUS_SUCCESS)
                 {
                     Error::error(L"Create Thread Failed");
-                    VirtualFreeEx(hProcess, pAddress, (SIZE_T)dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -405,7 +407,7 @@ namespace XInject
                 {
                     Error::error(L"Create Thread Failed");
                     // delete[] buffer;
-                    VirtualFreeEx(hProcess, pAddress, (SIZE_T)dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -415,7 +417,7 @@ namespace XInject
 
                 WaitForSingleObject(hThread, 500);
 
-                VirtualFreeEx(hProcess, pAddress, (SIZE_T)dwAllocSize, MEM_COMMIT);
+                VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                 CloseHandle(hProcess);
                 CloseHandle(hThread);
             }
@@ -522,7 +524,7 @@ namespace XInject
                 if (!bRet)
                 {
                     Error::error(L"Write Process Failed");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -541,7 +543,7 @@ namespace XInject
                 if (!bRet)
                 {
                     Error::error(L"Write Process Failed");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -556,7 +558,7 @@ namespace XInject
                 if (!bRet)
                 {
                     Error::error(L"Write Process Failed");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -576,7 +578,7 @@ namespace XInject
             if (hmodDLL == INVALID_HANDLE_VALUE || hmodDLL == NULL)
             {
                 Error::error(L"Failed Loadlibrary kernel32");
-                VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                 CloseHandle(hProcess);
                 return false;
             }
@@ -585,7 +587,7 @@ namespace XInject
             if (LoadLibraryBase == nullptr)
             {
                 Error::error(L"No Such Function in Library");
-                VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                 CloseHandle(hProcess);
                 return false;
             }
@@ -596,7 +598,7 @@ namespace XInject
             if (NtQuerySystemInformation == nullptr)
             {
                 Error::error(L"NtQuerySystemInformation is NULL");
-                VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                 CloseHandle(hProcess);
                 return false;
             }
@@ -646,7 +648,7 @@ namespace XInject
             }
             if (!bStat)
                 Error::error(L"Apc Inject Failed\nAll thread can't be inject");
-            VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+            VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
             CloseHandle(hProcess);
 
             return true;
@@ -682,7 +684,7 @@ namespace XInject
                 if (!bRet)
                 {
                     Error::error(L"Write Process Failed");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -697,7 +699,7 @@ namespace XInject
                 if (!bRet)
                 {
                     Error::error(L"Write Process Failed");
-                    VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                    VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                     CloseHandle(hProcess);
                     return false;
                 }
@@ -714,7 +716,7 @@ namespace XInject
             if (NtQuerySystemInformation == nullptr)
             {
                 Error::error(L"NtQuerySystemInformation is NULL");
-                VirtualFreeEx(hProcess, pAddress, dwAllocSize, MEM_COMMIT);
+                VirtualFreeEx(hProcess, pAddress, 0, MEM_RELEASE);
                 CloseHandle(hProcess);
                 return false;
             }

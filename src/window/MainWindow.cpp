@@ -96,8 +96,6 @@ namespace XInject
                             if (unsigned int(info.pid / 10) == 0)
                                 itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"         " + info.processName));
                             else if (unsigned int(info.pid / 100) == 0)
-                                itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"        " + info.processName));
-                            else if (unsigned int(info.pid / 100) == 0)
                                 itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"       " + info.processName));
                             else if (unsigned int(info.pid / 1000) == 0)
                                 itemList.push_back(Crypto::WstringToUTF8(std::to_wstring(info.pid) + L"      " + info.processName));

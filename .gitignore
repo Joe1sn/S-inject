@@ -8,3 +8,5 @@
 *.idb
 *.ini
 .vscode
+.claude
+**/.agents
