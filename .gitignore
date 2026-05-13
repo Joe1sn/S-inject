@@ -10,3 +10,4 @@
 .vscode
 .claude
 **/.agents
+**/patches
