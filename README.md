@@ -25,6 +25,8 @@
 
 # Update
 
+- **[2026-5-13]** 修正了github workflow，可以直接在action中下载到github自动编译的最终exe产物
+
 - **[2026-5-10]** 提升代码指令，修复了VirtualAlloc参数错误和Cmake中32位编译对asm的支持
 
 - **[2026-2-28]** 提供poolparty的不稳定二进制发行版
