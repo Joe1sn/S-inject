@@ -24,7 +24,8 @@ namespace XInject
                     "APC Queue\0"
                     "Reflective\0"
                     "Context(thread hijack)\0"
-                    "Poolparty\0", 5))
+                    "Poolparty\0"
+                    "Test all\0", 6))
                     type = 0;
                 if (method == 4) {
                     ImGui::Text("PoolParty");
@@ -41,42 +42,48 @@ namespace XInject
                     ImGui::SameLine();
                     ImGui::Checkbox("SeDebug", &needSeDebug);
                 }
+                // TODO: 测试模式初始化
+                else if (method == 5) {
+
+                }
                 // 如果有人开始选择方法
-                // 0. remote thread inject
-                // 1. apc inject
-                // 2. reflect inject
-                // 3. context inject (thread hijack)
-                ImGui::Text("Type            ");
-                ImGui::SameLine();
-                switch (method)
-                {
-                case 0: // remote thread injection
-                case 1: // apc inject   只能注入dll文件和shellcode
-                {
-                    ImGui::Combo("##type", &type, "DLL file\0shellcode\0shellcode file\0", 3);
-                    break;
-                }
-                case 2: // 反射式注入不能注入shellcode
-                {
-                    ImGui::Combo("##type", &type, "DLL file\0url\0", 2);
-                    break;
-                }
-                case 3: // 线程劫持只能注入shellcode
-                {
-                    ImGui::Combo("##type", &type, "shellcode\0shellcode file\0", 2);
-                    break;
-                }
-                case 4:
-                {
-                    // ImGui::Combo("##type", &type, "DLL file\0url\0shellcode\0shellcode file\0", 4);
-                    ImGui::Combo("##type", &type, "shellcode\0shellcode file\0", 2);
-                    break;
+                if (method != 5) { // 非测试模式
+                    // 0. remote thread inject
+                    // 1. apc inject
+                    // 2. reflect inject
+                    // 3. context inject (thread hijack)
+                    ImGui::Text("Type            ");
+                    ImGui::SameLine();
+                    switch (method)
+                    {
+                    case 0: // remote thread injection
+                    case 1: // apc inject   只能注入dll文件和shellcode
+                    {
+                        ImGui::Combo("##type", &type, "DLL file\0shellcode\0shellcode file\0", 3);
+                        break;
+                    }
+                    case 2: // 反射式注入不能注入shellcode
+                    {
+                        ImGui::Combo("##type", &type, "DLL file\0url\0", 2);
+                        break;
+                    }
+                    case 3: // 线程劫持只能注入shellcode
+                    {
+                        ImGui::Combo("##type", &type, "shellcode\0shellcode file\0", 2);
+                        break;
+                    }
+                    case 4:
+                    {
+                        // ImGui::Combo("##type", &type, "DLL file\0url\0shellcode\0shellcode file\0", 4);
+                        ImGui::Combo("##type", &type, "shellcode\0shellcode file\0", 2);
+                        break;
+                    }
+                    default:
+                        ImGui::Combo("##type", &type, "\0", 0);
+                        break;
+                    }
                 }
 
-                default:
-                    ImGui::Combo("##type", &type, "\0", 0);
-                    break;
-                }
 
                 ImGui::Text("Process   ");
                 ImGui::SameLine();
@@ -125,28 +132,34 @@ namespace XInject
                     ImGui::EndCombo();
                     // return true;
                 }
+                // TODO: 测试所有方法的结果展示函数
+                if (method == 5) {
 
-                ImGui::Text("Args            ");
-                ImGui::SameLine();
-                ImGui::InputText("##arg", args, constant::maxStrSize);
-                ImGui::SameLine();
-                chooseFile = ImGui::Button("file");
-                if (chooseFile)
-                {
-                    ZeroMemory(&ofn, sizeof(ofn));
-                    ofn.lStructSize = sizeof(ofn);
-                    ofn.hwndOwner = NULL;
-                    ofn.lpstrFilter = "All Files\0*.*\0";
-                    ofn.lpstrFile = args;
-                    ofn.nMaxFile = MAX_PATH;
-                    ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
-                    ofn.lpstrDefExt = "";
-                    if (GetOpenFileNameA(&ofn)) {}
                 }
+                else {
+                    ImGui::Text("Args            ");
+                    ImGui::SameLine();
+                    ImGui::InputText("##arg", args, constant::maxStrSize);
+                    ImGui::SameLine();
+                    chooseFile = ImGui::Button("file");
+                    if (chooseFile)
+                    {
+                        ZeroMemory(&ofn, sizeof(ofn));
+                        ofn.lStructSize = sizeof(ofn);
+                        ofn.hwndOwner = NULL;
+                        ofn.lpstrFilter = "All Files\0*.*\0";
+                        ofn.lpstrFile = args;
+                        ofn.nMaxFile = MAX_PATH;
+                        ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+                        ofn.lpstrDefExt = "";
+                        if (GetOpenFileNameA(&ofn)) {}
+                    }
 
-                if (ImGui::Button("Inject")) // 点击注入
-                {
-                    MainWindow::doInject();
+                    if (ImGui::Button("Inject")) // 点击注入
+                    {
+                        MainWindow::doInject();
+                    }
+
                 }
 
                 ImGui::End();
