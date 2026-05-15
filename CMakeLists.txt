@@ -15,6 +15,7 @@ set(SINJECT_INCLUDE
     include/app/format.hpp
 
     include/window/MainWindow.hpp
+    include/window/draw.hpp
     include/window/resources.h
 
     include/utils/constant.hpp
@@ -36,6 +37,7 @@ set(SINJECT_SOURCE
     src/winres.rc
 
     src/window/MainWindow.cpp
+    src/window/draw.cpp
 
     src/app/S-Wisper.c
     src/app/injector.cpp

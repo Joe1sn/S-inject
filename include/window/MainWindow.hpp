@@ -12,6 +12,7 @@
 #include "include/app/Injector.hpp"
 #include "include/app/format.hpp"
 #include "include/utils/crypto.hpp"
+#include "include/window/draw.hpp"
 
 using namespace XInject::constant;
 
@@ -27,6 +28,7 @@ namespace XInject
         inline int type;
         inline int pid;
         inline DWORD chosenPid;
+
         static char args[constant::maxStrSize] = {};
         bool setupUi();
         void doInject();

@@ -42,10 +42,7 @@ namespace XInject
                     ImGui::SameLine();
                     ImGui::Checkbox("SeDebug", &needSeDebug);
                 }
-                // TODO: 测试模式初始化
-                else if (method == 5) {
 
-                }
                 // 如果有人开始选择方法
                 if (method != 5) { // 非测试模式
                     // 0. remote thread inject
@@ -134,7 +131,18 @@ namespace XInject
                 }
                 // TODO: 测试所有方法的结果展示函数
                 if (method == 5) {
-
+                    ImGui::Text("Test All Functions Mode");
+                    XInject::Drawer::drawCircle();
+                    ImGui::Text("Remote Thread");
+                    XInject::Drawer::drawCircle();
+                    ImGui::Text("APC Queue");
+                    XInject::Drawer::drawCircle();
+                    ImGui::Text("Reflective");
+                    XInject::Drawer::drawCircle();
+                    ImGui::Text("Context(thread hijack)");
+                    XInject::Drawer::drawCircle();
+                    ImGui::Text("Poolparty");
+                    ImGui::Button("start");
                 }
                 else {
                     ImGui::Text("Args            ");
