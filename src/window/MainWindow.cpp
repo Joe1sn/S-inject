@@ -1,4 +1,5 @@
 #include "include/window/MainWindow.hpp"
+#include <thread>
 
 using namespace XInject::constant;
 using namespace XInject::Crypto;
@@ -132,17 +133,60 @@ namespace XInject
                 // TODO: 测试所有方法的结果展示函数
                 if (method == 5) {
                     ImGui::Text("Test All Functions Mode");
-                    XInject::Drawer::drawCircle();
-                    ImGui::Text("Remote Thread");
-                    XInject::Drawer::drawCircle();
-                    ImGui::Text("APC Queue");
-                    XInject::Drawer::drawCircle();
-                    ImGui::Text("Reflective");
-                    XInject::Drawer::drawCircle();
-                    ImGui::Text("Context(thread hijack)");
-                    XInject::Drawer::drawCircle();
-                    ImGui::Text("Poolparty");
-                    ImGui::Button("start");
+
+                    ImGui::Text("Args            ");
+                    ImGui::SameLine();
+                    ImGui::InputText("##arg", args, constant::maxStrSize);
+                    ImGui::SameLine();
+                    chooseFile = ImGui::Button("file");
+                    if (chooseFile)
+                    {
+                        ZeroMemory(&ofn, sizeof(ofn));
+                        ofn.lStructSize = sizeof(ofn);
+                        ofn.hwndOwner = NULL;
+                        ofn.lpstrFilter = "All Files\0*.*\0";
+                        ofn.lpstrFile = args;
+                        ofn.nMaxFile = MAX_PATH;
+                        ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+                        ofn.lpstrDefExt = "";
+                        if (GetOpenFileNameA(&ofn)) {}
+                    }
+
+                    auto drawTestLine = [](int idx, const char* name, const char* hint) {
+                        ImU32 color;
+                        const char* status;
+                        switch (testStates[idx]) {
+                        case TestState::Pending: color = IM_COL32(128, 128, 128, 255); status = "Pending"; break;
+                        case TestState::Running: color = IM_COL32(255, 255, 0, 255); status = "Running..."; break;
+                        case TestState::Success: color = IM_COL32(0, 255, 0, 255); status = "OK"; break;
+                        case TestState::Failed:  color = IM_COL32(255, 0, 0, 255); status = "Failed"; break;
+                        }
+                        XInject::Drawer::drawCircle(color);
+                        ImGui::Text("%s", name);
+                        ImGui::SameLine();
+                        ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(color), "[%s]", status);
+                        ImGui::SameLine();
+                        ImGui::TextDisabled("(%s)", hint);
+                        };
+
+                    drawTestLine(0, "Remote Thread", "DLL file");
+                    drawTestLine(1, "APC Queue", "DLL file");
+                    drawTestLine(2, "Reflective", "DLL file");
+                    // drawTestLine(3, "Context(thread hijack)", "shellcode file");
+                    // drawTestLine(4, "Poolparty", "shellcode file");
+
+                    ImGui::Separator();
+
+                    if (testAllRunning) {
+                        ImGui::BeginDisabled();
+                        ImGui::Button("Testing...");
+                        ImGui::EndDisabled();
+                    }
+                    else {
+                        if (ImGui::Button("Test All")) {
+                            MainWindow::doTestAll();
+                        }
+                    }
                 }
                 else {
                     ImGui::Text("Args            ");
@@ -202,6 +246,40 @@ namespace XInject
             default:
                 break;
             }
+        }
+
+        void doTestAll()
+        {
+            testAllRunning = true;
+            for (int i = 0; i < 5; i++)
+                testStates[i] = TestState::Pending;
+
+            DWORD pid = chosenPid;
+            std::string arg(args);
+
+            std::thread([pid, arg]() {
+                // 0: Remote Thread — DLL file
+                testStates[0] = TestState::Running;
+                testStates[0] = Injector::remoteThreadInject(pid, 0, arg) ? TestState::Success : TestState::Failed;
+
+                // 1: APC Queue — DLL file
+                testStates[1] = TestState::Running;
+                testStates[1] = Injector::apcInject(pid, 0, arg) ? TestState::Success : TestState::Failed;
+
+                // 2: Reflective — DLL file
+                testStates[2] = TestState::Running;
+                testStates[2] = Injector::reflectInject(pid, 0, arg) ? TestState::Success : TestState::Failed;
+
+                // 3: Context (thread hijack) — shellcode file
+                // testStates[3] = TestState::Running;
+                // testStates[3] = Injector::contextInject(pid, 1, arg) ? TestState::Success : TestState::Failed;
+
+                // // 4: Poolparty — shellcode file, WorkerFactoryStartRoutineOverwrite
+                // testStates[4] = TestState::Running;
+                // testStates[4] = Injector::poolPartyInject(pid, 1, 0, arg, false) ? TestState::Success : TestState::Failed;
+
+                testAllRunning = false;
+                }).detach();
         }
     } // namespace MainWindow
 
