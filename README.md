@@ -19,11 +19,15 @@
 
 <p align="center"><img src="./assets/image-20250914204952974.png"></p>
 
-
-
 <p align="center"><img src="./assets/image-20250914210256156.png"></p>
 
+<p align="center"><img src="./assets/e22d7a1942a69228078be4ff25110db1.png"></p>
+
+
+
 # Update
+
+- **[2026-5-16]** 添加基础 DLL 注入的GUI测试方式。支持对选定的进程进行 远程线程注入、APC队列注入、反射式注入(manual mapping)的自动测试方式，通过测试验证软件防护DLL注入的能力
 
 - **[2026-5-13]** 修正了github workflow，可以直接在action中下载到github自动编译的最终exe产物
 
@@ -53,6 +57,10 @@
 - **[2025-7-1]** 修改为cmake项目，在项目中新建`build`目录后，使用`cmake ..`后`cmake .. -G "Visual Studio 17 2022" -A x64` 可以生成64位的sln项目，之后使用`cmake --build . --config Release`可以直接编译
 
 # Feature
+
+- **[2026-5-16]** 对进程进行DLL注入方式测试
+
+  ![e22d7a1942a69228078be4ff25110db1](./assets/e22d7a1942a69228078be4ff25110db1.png)
 
 - **[2025-11-28]** v3.1更新
 

@@ -29,9 +29,14 @@ namespace XInject
         inline int pid;
         inline DWORD chosenPid;
 
+        enum class TestState { Pending, Running, Success, Failed };
+        inline TestState testStates[5] = { TestState::Pending };
+        inline bool testAllRunning = false;
+
         static char args[constant::maxStrSize] = {};
         bool setupUi();
         void doInject();
+        void doTestAll();
     } // namespace MainWindow
 
 } // namespace XInject
