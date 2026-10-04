@@ -27,6 +27,8 @@
 
 # Update
 
+- **[2026-10-4]**添加workflow的手动触发器，其他用户只需要fork后再action中新建workflow然后run即可重新构建，从而得到二进制的编译文件
+
 - **[2026-5-16]** 添加基础 DLL 注入的GUI测试方式。支持对选定的进程进行 远程线程注入、APC队列注入、反射式注入(manual mapping)的自动测试方式，通过测试验证软件防护DLL注入的能力
 
 - **[2026-5-13]** 修正了github workflow，可以直接在action中下载到github自动编译的最终exe产物
