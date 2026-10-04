@@ -11,3 +11,4 @@
 .claude
 **/.agents
 **/patches
+.VSCodeCounter

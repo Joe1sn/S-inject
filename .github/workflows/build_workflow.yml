@@ -1,6 +1,7 @@
 name: Build S-Inject
 
 on:
+  workflow_dispatch:      # <--- 添加这一行，允许 Fork 后手动触发
   push:
     branches: [ "main" ]
   pull_request:
